@@ -1,0 +1,21 @@
+# Dart tool directory
+.dart_tool/
+
+# IDE specific files
+.idea/
+.vscode/
+
+# Build output
+build/
+
+# Other generated files
+*.g.dart
+*.freezed.dart
+
+# Pub specific files
+pubspec.lock # Often committed, but can be ignored depending on policy
+.packages
+.pub-cache/
+
+# Sensitive environment variables (if any)
+.env*

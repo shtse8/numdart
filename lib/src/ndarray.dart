@@ -565,4 +565,103 @@ class NdArray {
   }
 
   // TODO: Extend operator []= to handle slice assignment
+
+  /// Returns an array containing the same data with a new shape.
+  ///
+  /// Returns a view of the original array whenever possible. The total number
+  /// of elements must remain the same.
+  ///
+  /// One dimension may be specified as -1. In this case, the value is
+  /// inferred from the length of the array and remaining dimensions.
+  ///
+  /// Example:
+  /// ```dart
+  /// var a = NdArray.arange(6); // [0, 1, 2, 3, 4, 5]
+  /// var b = a.reshape([2, 3]); // [[0, 1, 2], [3, 4, 5]]
+  /// var c = a.reshape([3, -1]); // [[0, 1], [2, 3], [4, 5]] (Inferred shape [3, 2])
+  ///
+  /// // Modifying the view modifies the original
+  /// b[[0, 0]] = 99;
+  /// print(a[[0]]); // Output: 99
+  /// ```
+  ///
+  /// Throws [ArgumentError] if the new shape is incompatible with the original size.
+  NdArray reshape(List<int> newShape) {
+    List<int> resolvedShape =
+        List.from(newShape); // Copy to modify if -1 is present
+    int unknownDimIndex = resolvedShape.indexOf(-1);
+
+    if (unknownDimIndex != -1) {
+      if (resolvedShape.where((d) => d == -1).length > 1) {
+        throw ArgumentError('Can only specify one unknown dimension (-1)');
+      }
+      int productOfKnownDims = 1;
+      for (int dim in resolvedShape) {
+        if (dim > 0) {
+          productOfKnownDims *= dim;
+        } else if (dim == 0 || dim < -1) {
+          throw ArgumentError('Invalid dimension size in new shape: $dim');
+        }
+      }
+      // Handle scalar case where size is 1 but productOfKnownDims might be 0 if shape is like [-1]
+      if (size == 0 &&
+          productOfKnownDims == 1 &&
+          resolvedShape.length == 1 &&
+          resolvedShape[0] == -1) {
+        resolvedShape[unknownDimIndex] = 0; // Reshape empty to shape [0]
+      } else if (productOfKnownDims == 0) {
+        // This can happen if a known dimension is 0
+        if (size == 0) {
+          // Calculate the unknown dimension assuming others are valid
+          int tempProduct = 1;
+          resolvedShape.forEach((d) {
+            if (d > 0) tempProduct *= d;
+          });
+          if (size % tempProduct != 0) {
+            // Check if size is divisible by non-zero known dims
+            throw ArgumentError(
+                'Cannot reshape array of size $size into shape $newShape (product is zero)');
+          }
+          resolvedShape[unknownDimIndex] =
+              0; // If size is 0, unknown dim must be 0
+        } else {
+          throw ArgumentError(
+              'Cannot reshape array of size $size into shape $newShape (product is zero)');
+        }
+      } else if (size % productOfKnownDims != 0) {
+        throw ArgumentError(
+            'Cannot reshape array of size $size into shape $newShape');
+      } else {
+        resolvedShape[unknownDimIndex] = size ~/ productOfKnownDims;
+      }
+    }
+
+    // Validate the final shape size
+    final int newSize = _calculateSize(resolvedShape);
+    if (newSize != size) {
+      throw ArgumentError(
+          'Cannot reshape array of size $size into shape $resolvedShape (calculated size $newSize)');
+    }
+    if (resolvedShape.any((dim) => dim < 0)) {
+      throw ArgumentError(
+          'Negative dimensions are not allowed in the final shape: $resolvedShape');
+    }
+
+    // Calculate new strides for the view
+    // Note: Reshaping might not always be possible as a view if memory layout is non-contiguous
+    // (e.g., after certain transpose operations). For now, we assume it's possible.
+    final List<int> newStrides =
+        _calculateStrides(resolvedShape, data.elementSizeInBytes);
+
+    // Return a new view sharing the same data and offset
+    return NdArray.internalCreateView(
+        data,
+        resolvedShape,
+        newStrides,
+        dtype,
+        size, // Size remains the same
+        resolvedShape.length, // New ndim
+        offsetInBytes // Offset remains the same for reshape view
+        );
+  }
 } // End of NdArray class
