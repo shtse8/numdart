@@ -944,6 +944,96 @@ class NdArray {
     return result;
   }
 
+  /// Performs element-wise multiplication with another NdArray.
+  ///
+  /// Both arrays must have the same shape and dtype. Broadcasting is not yet supported.
+  ///
+  /// Example:
+  /// ```dart
+  /// var a = NdArray.array([1, 2, 3]);
+  /// var b = NdArray.array([4, 5, 6]);
+  /// var c = a * b; // c will be NdArray([4, 10, 18])
+  /// ```
+  /// Throws [ArgumentError] if shapes or dtypes do not match.
+  NdArray operator *(NdArray other) {
+    // 1. Shape Check
+    if (!const ListEquality().equals(shape, other.shape)) {
+      throw ArgumentError(
+          'Operands could not be broadcast together with shapes $shape and ${other.shape}');
+    }
+
+    // 2. Type Check (Initial: require same dtype)
+    if (dtype != other.dtype) {
+      throw ArgumentError(
+          'Operands must have the same dtype for multiplication (got $dtype and ${other.dtype})');
+      // TODO: Implement type promotion later
+    }
+
+    // 3. Create Result Array
+    // Map element type (int/double) from this.dtype to the required TypedData type for zeros
+    Type resultTypedDataType;
+    if (dtype == int) {
+      resultTypedDataType = Int64List; // Default integer TypedData
+    } else if (dtype == double) {
+      resultTypedDataType = Float64List; // Default float TypedData
+    } else {
+      // This case should ideally not happen if dtype is always int or double
+      throw StateError("Unexpected element dtype in operator*: $dtype");
+    }
+    final result = NdArray.zeros(shape,
+        dtype: resultTypedDataType); // Pass the correct TypedData type
+
+    // 4. Element-wise Multiplication using logical indices
+    if (size == 0) return result; // Handle empty arrays
+
+    final List<int> currentIndices = List<int>.filled(ndim, 0);
+    final int elementSizeBytes =
+        data.elementSizeInBytes; // Assuming same dtype, same size
+
+    for (int i = 0; i < size; i++) {
+      // Calculate byte offset for 'this' array
+      int thisByteOffset = offsetInBytes;
+      for (int d = 0; d < ndim; d++) {
+        thisByteOffset += currentIndices[d] * strides[d];
+      }
+      final int thisDataIndex = thisByteOffset ~/ elementSizeBytes;
+
+      // Calculate byte offset for 'other' array
+      int otherByteOffset = other.offsetInBytes;
+      for (int d = 0; d < ndim; d++) {
+        otherByteOffset += currentIndices[d] * other.strides[d];
+      }
+      final int otherDataIndex = otherByteOffset ~/ elementSizeBytes;
+
+      // Calculate byte offset for 'result' array (always contiguous, offset 0)
+      int resultByteOffset = 0; // Result offset is always 0 initially
+      for (int d = 0; d < ndim; d++) {
+        resultByteOffset += currentIndices[d] * result.strides[d];
+      }
+      final int resultDataIndex = resultByteOffset ~/ elementSizeBytes;
+
+      // Get values and multiply
+      final dynamic val1 = _getDataItem(data, thisDataIndex);
+      final dynamic val2 = _getDataItem(other.data, otherDataIndex);
+      // Dart's dynamic * handles num * num correctly
+      final dynamic product = val1 * val2; // Changed - to *
+
+      // Set result
+      _setDataItem(result.data, resultDataIndex, product); // Use product
+
+      // Increment logical indices (like an odometer)
+      for (int d = ndim - 1; d >= 0; d--) {
+        currentIndices[d]++;
+        if (currentIndices[d] < shape[d]) {
+          break; // No carry-over needed
+        }
+        currentIndices[d] = 0; // Reset and carry-over
+      }
+    }
+
+    return result;
+  }
+
   // --- Private Helper Methods ---
 
   /// Calculates and returns a list of indices into the underlying data buffer

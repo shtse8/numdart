@@ -17,6 +17,8 @@
     implemented and tested.
   - Basic element-wise subtraction (`operator-`) for same-shape, same-dtype
     arrays implemented and tested.
+  - Basic element-wise multiplication (`operator*`) for same-shape, same-dtype
+    arrays implemented and tested.
 
 ## Known Issues / TODOs
 
@@ -25,7 +27,8 @@
      broadcasting).
 2. **Implement Broadcasting:** Core mechanism needed for NdArray slice
    assignment and many math operations.
-3. **Implement Remaining Basic Math Ops:** `*`, `/` for same-shape arrays.
+3. **Implement Remaining Basic Math Ops:** `/` for same-shape arrays (consider
+   result type and division by zero).
 4. **Implement Scalar Math Ops:** Operations between `NdArray` and scalar values
    (e.g., `array + 5`, `array * 2`).
 5. **Type Promotion:** Define rules and implement logic for operations between
