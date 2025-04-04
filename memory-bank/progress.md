@@ -19,6 +19,8 @@
     promotion).
   - Basic element-wise subtraction (`operator-`) for same-shape, same-dtype
     arrays implemented and tested.
+  - Scalar subtraction (`NdArray - num`) implemented and tested (includes type
+    promotion).
   - Basic element-wise multiplication (`operator*`) for same-shape, same-dtype
     arrays implemented and tested.
 
@@ -32,8 +34,8 @@
 3. **Implement Remaining Basic Math Ops:** `/` for same-shape arrays (consider
    result type and division by zero).
 4. **Implement Scalar Math Ops:**
-   - **TODO:** Implement scalar subtraction, multiplication, division
-     (`array - scalar`, `array * scalar`, `array / scalar`).
+   - **TODO:** Implement scalar multiplication, division (`array * scalar`,
+     `array / scalar`).
 5. **Type Promotion:**
    - **TODO:** Define rules and implement logic for array-array operations
      between different numeric dtypes.
