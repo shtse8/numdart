@@ -29,6 +29,33 @@ int _calculateSize(List<int> shape) {
   return shape.reduce((value, element) => value * element);
 }
 
+/// Calculates the resulting shape after broadcasting two shapes.
+/// Throws ArgumentError if the shapes are not broadcastable.
+List<int> _calculateBroadcastShape(List<int> shapeA, List<int> shapeB) {
+  final int ndimA = shapeA.length;
+  final int ndimB = shapeB.length;
+  final int ndimMax = max(ndimA, ndimB);
+  final List<int> resultShape = List<int>.filled(ndimMax, 0);
+
+  for (int i = 0; i < ndimMax; i++) {
+    // Get dimensions, padding with 1 if necessary
+    final int dimA = (i < ndimA) ? shapeA[ndimA - 1 - i] : 1;
+    final int dimB = (i < ndimB) ? shapeB[ndimB - 1 - i] : 1;
+
+    if (dimA == dimB) {
+      resultShape[ndimMax - 1 - i] = dimA;
+    } else if (dimA == 1) {
+      resultShape[ndimMax - 1 - i] = dimB;
+    } else if (dimB == 1) {
+      resultShape[ndimMax - 1 - i] = dimA;
+    } else {
+      throw ArgumentError(
+          'Operands could not be broadcast together with shapes $shapeA and $shapeB');
+    }
+  }
+  return resultShape;
+}
+
 Type _getDType(TypedData data) {
   if (data is Int8List) return int;
   if (data is Uint8List) return int;
@@ -629,17 +656,17 @@ class NdArray {
 
   NdArray operator +(dynamic other) {
     if (other is NdArray) {
-      // --- Array-Array Addition ---
-      if (!const ListEquality().equals(shape, other.shape)) {
-        throw ArgumentError(
-            'Operands could not be broadcast together with shapes $shape and ${other.shape}');
-      }
+      // --- Array-Array Addition with Broadcasting ---
+      final List<int> broadcastShape =
+          _calculateBroadcastShape(shape, other.shape);
+      final int resultSize = _calculateSize(broadcastShape);
+      final int resultNdim = broadcastShape.length;
+
+      // TODO: Implement proper type promotion based on both operands
       if (dtype != other.dtype) {
         throw ArgumentError(
-            'Operands must have the same dtype for addition (got $dtype and ${other.dtype})');
-        // TODO: Implement type promotion later
+            'Operands must have the same dtype for addition (got $dtype and ${other.dtype}) - Type promotion not yet implemented.');
       }
-
       Type resultTypedDataType;
       if (dtype == int) {
         resultTypedDataType = Int64List;
@@ -648,40 +675,72 @@ class NdArray {
       } else {
         throw StateError("Unexpected element dtype in operator+: $dtype");
       }
-      final result = NdArray.zeros(shape, dtype: resultTypedDataType);
 
-      if (size == 0) return result;
+      final result = NdArray.zeros(broadcastShape, dtype: resultTypedDataType);
+      if (resultSize == 0) return result;
 
-      final List<int> currentIndices = List<int>.filled(ndim, 0);
-      final int elementSizeBytes = data.elementSizeInBytes;
+      final List<int> currentIndices = List<int>.filled(resultNdim, 0);
+      final int thisElementSizeBytes = data.elementSizeInBytes;
+      final int otherElementSizeBytes = other.data.elementSizeInBytes;
+      final int resultElementSizeBytes = result.data.elementSizeInBytes;
 
-      for (int i = 0; i < size; i++) {
+      for (int i = 0; i < resultSize; i++) {
+        // Calculate byte offset for 'this' array considering broadcasting
         int thisByteOffset = offsetInBytes;
-        for (int d = 0; d < ndim; d++) {
-          thisByteOffset += currentIndices[d] * strides[d];
+        for (int d = 0; d < resultNdim; d++) {
+          final int idx = currentIndices[d];
+          final int thisDimIdx =
+              d - (resultNdim - ndim); // Align dimensions from the right
+          if (thisDimIdx >= 0) {
+            final int thisDimSize = shape[thisDimIdx];
+            final int thisStride = strides[thisDimIdx];
+            // If dimension was broadcast (size 1), use stride 0 effectively
+            if (thisDimSize == 1 && broadcastShape[d] > 1) {
+              // Stride is effectively 0, add nothing
+            } else {
+              thisByteOffset += idx * thisStride;
+            }
+          }
+          // If thisDimIdx < 0, this dimension doesn't exist in 'this', effectively broadcast
         }
-        final int thisDataIndex = thisByteOffset ~/ elementSizeBytes;
+        final int thisDataIndex = thisByteOffset ~/ thisElementSizeBytes;
 
+        // Calculate byte offset for 'other' array considering broadcasting
         int otherByteOffset = other.offsetInBytes;
-        for (int d = 0; d < ndim; d++) {
-          otherByteOffset += currentIndices[d] * other.strides[d];
+        for (int d = 0; d < resultNdim; d++) {
+          final int idx = currentIndices[d];
+          final int otherDimIdx =
+              d - (resultNdim - other.ndim); // Align dimensions
+          if (otherDimIdx >= 0) {
+            final int otherDimSize = other.shape[otherDimIdx];
+            final int otherStride = other.strides[otherDimIdx];
+            if (otherDimSize == 1 && broadcastShape[d] > 1) {
+              // Stride is effectively 0, add nothing
+            } else {
+              otherByteOffset += idx * otherStride;
+            }
+          }
+          // If otherDimIdx < 0, this dimension doesn't exist in 'other', effectively broadcast
         }
-        final int otherDataIndex = otherByteOffset ~/ elementSizeBytes;
+        final int otherDataIndex = otherByteOffset ~/ otherElementSizeBytes;
 
+        // Calculate byte offset for 'result' array
         int resultByteOffset = 0;
-        for (int d = 0; d < ndim; d++) {
+        for (int d = 0; d < resultNdim; d++) {
           resultByteOffset += currentIndices[d] * result.strides[d];
         }
-        final int resultDataIndex = resultByteOffset ~/ elementSizeBytes;
+        final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
+        // Perform operation
         final dynamic val1 = _getDataItem(data, thisDataIndex);
         final dynamic val2 = _getDataItem(other.data, otherDataIndex);
         final dynamic sum = val1 + val2;
         _setDataItem(result.data, resultDataIndex, sum);
 
-        for (int d = ndim - 1; d >= 0; d--) {
+        // Increment multi-dimensional index for broadcast shape
+        for (int d = resultNdim - 1; d >= 0; d--) {
           currentIndices[d]++;
-          if (currentIndices[d] < shape[d]) break;
+          if (currentIndices[d] < broadcastShape[d]) break;
           currentIndices[d] = 0;
         }
       }
@@ -736,17 +795,17 @@ class NdArray {
 
   NdArray operator -(dynamic other) {
     if (other is NdArray) {
-      // --- Array-Array Subtraction ---
-      if (!const ListEquality().equals(shape, other.shape)) {
-        throw ArgumentError(
-            'Operands could not be broadcast together with shapes $shape and ${other.shape}');
-      }
+      // --- Array-Array Subtraction with Broadcasting ---
+      final List<int> broadcastShape =
+          _calculateBroadcastShape(shape, other.shape);
+      final int resultSize = _calculateSize(broadcastShape);
+      final int resultNdim = broadcastShape.length;
+
+      // TODO: Implement proper type promotion based on both operands
       if (dtype != other.dtype) {
         throw ArgumentError(
-            'Operands must have the same dtype for subtraction (got $dtype and ${other.dtype})');
-        // TODO: Implement type promotion later
+            'Operands must have the same dtype for subtraction (got $dtype and ${other.dtype}) - Type promotion not yet implemented.');
       }
-
       Type resultTypedDataType;
       if (dtype == int) {
         resultTypedDataType = Int64List;
@@ -755,40 +814,64 @@ class NdArray {
       } else {
         throw StateError("Unexpected element dtype in operator-: $dtype");
       }
-      final result = NdArray.zeros(shape, dtype: resultTypedDataType);
 
-      if (size == 0) return result;
+      final result = NdArray.zeros(broadcastShape, dtype: resultTypedDataType);
+      if (resultSize == 0) return result;
 
-      final List<int> currentIndices = List<int>.filled(ndim, 0);
-      final int elementSizeBytes = data.elementSizeInBytes;
+      final List<int> currentIndices = List<int>.filled(resultNdim, 0);
+      final int thisElementSizeBytes = data.elementSizeInBytes;
+      final int otherElementSizeBytes = other.data.elementSizeInBytes;
+      final int resultElementSizeBytes = result.data.elementSizeInBytes;
 
-      for (int i = 0; i < size; i++) {
+      for (int i = 0; i < resultSize; i++) {
+        // Calculate byte offset for 'this' array considering broadcasting
         int thisByteOffset = offsetInBytes;
-        for (int d = 0; d < ndim; d++) {
-          thisByteOffset += currentIndices[d] * strides[d];
+        for (int d = 0; d < resultNdim; d++) {
+          final int idx = currentIndices[d];
+          final int thisDimIdx = d - (resultNdim - ndim); // Align dimensions
+          if (thisDimIdx >= 0) {
+            final int thisDimSize = shape[thisDimIdx];
+            final int thisStride = strides[thisDimIdx];
+            if (!(thisDimSize == 1 && broadcastShape[d] > 1)) {
+              thisByteOffset += idx * thisStride;
+            }
+          }
         }
-        final int thisDataIndex = thisByteOffset ~/ elementSizeBytes;
+        final int thisDataIndex = thisByteOffset ~/ thisElementSizeBytes;
 
+        // Calculate byte offset for 'other' array considering broadcasting
         int otherByteOffset = other.offsetInBytes;
-        for (int d = 0; d < ndim; d++) {
-          otherByteOffset += currentIndices[d] * other.strides[d];
+        for (int d = 0; d < resultNdim; d++) {
+          final int idx = currentIndices[d];
+          final int otherDimIdx =
+              d - (resultNdim - other.ndim); // Align dimensions
+          if (otherDimIdx >= 0) {
+            final int otherDimSize = other.shape[otherDimIdx];
+            final int otherStride = other.strides[otherDimIdx];
+            if (!(otherDimSize == 1 && broadcastShape[d] > 1)) {
+              otherByteOffset += idx * otherStride;
+            }
+          }
         }
-        final int otherDataIndex = otherByteOffset ~/ elementSizeBytes;
+        final int otherDataIndex = otherByteOffset ~/ otherElementSizeBytes;
 
+        // Calculate byte offset for 'result' array
         int resultByteOffset = 0;
-        for (int d = 0; d < ndim; d++) {
+        for (int d = 0; d < resultNdim; d++) {
           resultByteOffset += currentIndices[d] * result.strides[d];
         }
-        final int resultDataIndex = resultByteOffset ~/ elementSizeBytes;
+        final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
+        // Perform operation
         final dynamic val1 = _getDataItem(data, thisDataIndex);
         final dynamic val2 = _getDataItem(other.data, otherDataIndex);
         final dynamic diff = val1 - val2;
         _setDataItem(result.data, resultDataIndex, diff);
 
-        for (int d = ndim - 1; d >= 0; d--) {
+        // Increment multi-dimensional index for broadcast shape
+        for (int d = resultNdim - 1; d >= 0; d--) {
           currentIndices[d]++;
-          if (currentIndices[d] < shape[d]) break;
+          if (currentIndices[d] < broadcastShape[d]) break;
           currentIndices[d] = 0;
         }
       }
@@ -843,17 +926,17 @@ class NdArray {
 
   NdArray operator *(dynamic other) {
     if (other is NdArray) {
-      // --- Array-Array Multiplication ---
-      if (!const ListEquality().equals(shape, other.shape)) {
-        throw ArgumentError(
-            'Operands could not be broadcast together with shapes $shape and ${other.shape}');
-      }
+      // --- Array-Array Multiplication with Broadcasting ---
+      final List<int> broadcastShape =
+          _calculateBroadcastShape(shape, other.shape);
+      final int resultSize = _calculateSize(broadcastShape);
+      final int resultNdim = broadcastShape.length;
+
+      // TODO: Implement proper type promotion based on both operands
       if (dtype != other.dtype) {
         throw ArgumentError(
-            'Operands must have the same dtype for multiplication (got $dtype and ${other.dtype})');
-        // TODO: Implement type promotion later
+            'Operands must have the same dtype for multiplication (got $dtype and ${other.dtype}) - Type promotion not yet implemented.');
       }
-
       Type resultTypedDataType;
       if (dtype == int) {
         resultTypedDataType = Int64List;
@@ -862,40 +945,64 @@ class NdArray {
       } else {
         throw StateError("Unexpected element dtype in operator*: $dtype");
       }
-      final result = NdArray.zeros(shape, dtype: resultTypedDataType);
 
-      if (size == 0) return result;
+      final result = NdArray.zeros(broadcastShape, dtype: resultTypedDataType);
+      if (resultSize == 0) return result;
 
-      final List<int> currentIndices = List<int>.filled(ndim, 0);
-      final int elementSizeBytes = data.elementSizeInBytes;
+      final List<int> currentIndices = List<int>.filled(resultNdim, 0);
+      final int thisElementSizeBytes = data.elementSizeInBytes;
+      final int otherElementSizeBytes = other.data.elementSizeInBytes;
+      final int resultElementSizeBytes = result.data.elementSizeInBytes;
 
-      for (int i = 0; i < size; i++) {
+      for (int i = 0; i < resultSize; i++) {
+        // Calculate byte offset for 'this' array considering broadcasting
         int thisByteOffset = offsetInBytes;
-        for (int d = 0; d < ndim; d++) {
-          thisByteOffset += currentIndices[d] * strides[d];
+        for (int d = 0; d < resultNdim; d++) {
+          final int idx = currentIndices[d];
+          final int thisDimIdx = d - (resultNdim - ndim); // Align dimensions
+          if (thisDimIdx >= 0) {
+            final int thisDimSize = shape[thisDimIdx];
+            final int thisStride = strides[thisDimIdx];
+            if (!(thisDimSize == 1 && broadcastShape[d] > 1)) {
+              thisByteOffset += idx * thisStride;
+            }
+          }
         }
-        final int thisDataIndex = thisByteOffset ~/ elementSizeBytes;
+        final int thisDataIndex = thisByteOffset ~/ thisElementSizeBytes;
 
+        // Calculate byte offset for 'other' array considering broadcasting
         int otherByteOffset = other.offsetInBytes;
-        for (int d = 0; d < ndim; d++) {
-          otherByteOffset += currentIndices[d] * other.strides[d];
+        for (int d = 0; d < resultNdim; d++) {
+          final int idx = currentIndices[d];
+          final int otherDimIdx =
+              d - (resultNdim - other.ndim); // Align dimensions
+          if (otherDimIdx >= 0) {
+            final int otherDimSize = other.shape[otherDimIdx];
+            final int otherStride = other.strides[otherDimIdx];
+            if (!(otherDimSize == 1 && broadcastShape[d] > 1)) {
+              otherByteOffset += idx * otherStride;
+            }
+          }
         }
-        final int otherDataIndex = otherByteOffset ~/ elementSizeBytes;
+        final int otherDataIndex = otherByteOffset ~/ otherElementSizeBytes;
 
+        // Calculate byte offset for 'result' array
         int resultByteOffset = 0;
-        for (int d = 0; d < ndim; d++) {
+        for (int d = 0; d < resultNdim; d++) {
           resultByteOffset += currentIndices[d] * result.strides[d];
         }
-        final int resultDataIndex = resultByteOffset ~/ elementSizeBytes;
+        final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
+        // Perform operation
         final dynamic val1 = _getDataItem(data, thisDataIndex);
         final dynamic val2 = _getDataItem(other.data, otherDataIndex);
         final dynamic product = val1 * val2;
         _setDataItem(result.data, resultDataIndex, product);
 
-        for (int d = ndim - 1; d >= 0; d--) {
+        // Increment multi-dimensional index for broadcast shape
+        for (int d = resultNdim - 1; d >= 0; d--) {
           currentIndices[d]++;
-          if (currentIndices[d] < shape[d]) break;
+          if (currentIndices[d] < broadcastShape[d]) break;
           currentIndices[d] = 0;
         }
       }
@@ -1018,59 +1125,72 @@ class NdArray {
       }
       return result;
     } else if (other is NdArray) {
-      // --- Array-Array Division ---
-      if (!const ListEquality().equals(shape, other.shape)) {
-        throw ArgumentError(
-            'Operands could not be broadcast together with shapes $shape and ${other.shape}');
-      }
+      // --- Array-Array Division with Broadcasting ---
+      final List<int> broadcastShape =
+          _calculateBroadcastShape(shape, other.shape);
+      final int resultSize = _calculateSize(broadcastShape);
+      final int resultNdim = broadcastShape.length;
 
       // Result is always double for division
       const Type resultTypedDataType = Float64List;
-      final result = NdArray.zeros(shape, dtype: resultTypedDataType);
+      final result = NdArray.zeros(broadcastShape, dtype: resultTypedDataType);
+      if (resultSize == 0) return result;
 
-      if (size == 0) return result;
-
-      final List<int> currentIndices = List<int>.filled(ndim, 0);
+      final List<int> currentIndices = List<int>.filled(resultNdim, 0);
       final int thisElementSizeBytes = data.elementSizeInBytes;
       final int otherElementSizeBytes = other.data.elementSizeInBytes;
       final int resultElementSizeBytes = result.data.elementSizeInBytes;
 
-      for (int i = 0; i < size; i++) {
-        // Calculate byte offset for 'this' array
+      for (int i = 0; i < resultSize; i++) {
+        // Calculate byte offset for 'this' array considering broadcasting
         int thisByteOffset = offsetInBytes;
-        for (int d = 0; d < ndim; d++) {
-          thisByteOffset += currentIndices[d] * strides[d];
+        for (int d = 0; d < resultNdim; d++) {
+          final int idx = currentIndices[d];
+          final int thisDimIdx = d - (resultNdim - ndim); // Align dimensions
+          if (thisDimIdx >= 0) {
+            final int thisDimSize = shape[thisDimIdx];
+            final int thisStride = strides[thisDimIdx];
+            if (!(thisDimSize == 1 && broadcastShape[d] > 1)) {
+              thisByteOffset += idx * thisStride;
+            }
+          }
         }
         final int thisDataIndex = thisByteOffset ~/ thisElementSizeBytes;
 
-        // Calculate byte offset for 'other' array
+        // Calculate byte offset for 'other' array considering broadcasting
         int otherByteOffset = other.offsetInBytes;
-        for (int d = 0; d < ndim; d++) {
-          otherByteOffset += currentIndices[d] * other.strides[d];
+        for (int d = 0; d < resultNdim; d++) {
+          final int idx = currentIndices[d];
+          final int otherDimIdx =
+              d - (resultNdim - other.ndim); // Align dimensions
+          if (otherDimIdx >= 0) {
+            final int otherDimSize = other.shape[otherDimIdx];
+            final int otherStride = other.strides[otherDimIdx];
+            if (!(otherDimSize == 1 && broadcastShape[d] > 1)) {
+              otherByteOffset += idx * otherStride;
+            }
+          }
         }
         final int otherDataIndex = otherByteOffset ~/ otherElementSizeBytes;
 
         // Calculate byte offset for 'result' array
         int resultByteOffset = 0;
-        for (int d = 0; d < ndim; d++) {
+        for (int d = 0; d < resultNdim; d++) {
           resultByteOffset += currentIndices[d] * result.strides[d];
         }
         final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
-        // Get values and divide
+        // Perform operation
         final dynamic val1 = _getDataItem(data, thisDataIndex);
         final dynamic val2 = _getDataItem(other.data, otherDataIndex);
-
         // Perform division, always resulting in double, handle division by zero
         final double divisionResult = val1.toDouble() / val2.toDouble();
-
-        // Set result (which is always double)
         _setDataItem(result.data, resultDataIndex, divisionResult);
 
-        // Increment logical indices
-        for (int d = ndim - 1; d >= 0; d--) {
+        // Increment multi-dimensional index for broadcast shape
+        for (int d = resultNdim - 1; d >= 0; d--) {
           currentIndices[d]++;
-          if (currentIndices[d] < shape[d]) break;
+          if (currentIndices[d] < broadcastShape[d]) break;
           currentIndices[d] = 0;
         }
       }

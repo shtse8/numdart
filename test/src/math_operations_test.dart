@@ -7,6 +7,7 @@ import 'package:collection/collection.dart'; // For deep equality checks
 
 void main() {
   group('NdArray Addition (operator+)', () {
+    // --- Existing Tests ---
     test('1D Integer Addition', () {
       var a = NdArray.array([1, 2, 3]);
       var b = NdArray.array([4, 5, 6]);
@@ -85,16 +86,6 @@ void main() {
           const DeepCollectionEquality()
               .equals(result2.toList(), expected2.toList()),
           isTrue);
-    });
-
-    test('Throws ArgumentError for different shapes', () {
-      var a = NdArray.array([1, 2, 3]);
-      var b = NdArray.array([4, 5]);
-      expect(() => a + b, throwsArgumentError);
-
-      var c = NdArray.zeros([2, 3]);
-      var d = NdArray.zeros([3, 2]);
-      expect(() => c + d, throwsArgumentError);
     });
 
     test('Throws ArgumentError for different dtypes (currently)', () {
@@ -196,12 +187,172 @@ void main() {
       expect(() => a + null, throwsArgumentError);
     });
 
-    // Note: We don't explicitly test num + NdArray because Dart's operator
-    // resolution doesn't allow defining that directly on the NdArray class.
-    // If needed, a top-level function or extension method could handle it.
+    // --- Broadcasting Tests ---
+    test('Broadcasting Addition: 2D + 1D (Row)', () {
+      var a = NdArray.array([
+        [1, 2, 3],
+        [4, 5, 6]
+      ]); // Shape [2, 3]
+      var b = NdArray.array([10, 20, 30]); // Shape [3]
+      var expected = NdArray.array([
+        [11, 22, 33],
+        [14, 25, 36]
+      ]); // Shape [2, 3]
+      var result = a + b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(expected.dtype));
+      expect(
+          const DeepCollectionEquality()
+              .equals(result.toList(), expected.toList()),
+          isTrue);
+    });
+
+    test('Broadcasting Addition: 2D + 1D (Column)', () {
+      var a = NdArray.array([
+        [1, 2, 3],
+        [4, 5, 6]
+      ]); // Shape [2, 3]
+      var b = NdArray.array([
+        [10],
+        [20]
+      ]); // Shape [2, 1]
+      var expected = NdArray.array([
+        [11, 12, 13],
+        [24, 25, 26]
+      ]); // Shape [2, 3]
+      var result = a + b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(expected.dtype));
+      expect(
+          const DeepCollectionEquality()
+              .equals(result.toList(), expected.toList()),
+          isTrue);
+    });
+
+    test('Broadcasting Addition: 1D + 2D (Column)', () {
+      var a = NdArray.array(
+          [10, 20]); // Shape [2] -> conceptually [2, 1] for broadcasting
+      var b = NdArray.array([
+        [1, 2, 3],
+        [4, 5, 6]
+      ]); // Shape [2, 3]
+      // Need to reshape 'a' to make the broadcasting explicit for this case
+      // as 1D + 2D doesn't directly broadcast the 1D as a column in NumPy rules.
+      // Let's test the explicit column case:
+      var aCol = a.reshape([2, 1]);
+      var expected = NdArray.array([
+        [11, 12, 13],
+        [24, 25, 26]
+      ]); // Shape [2, 3]
+      var result = aCol + b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(expected.dtype));
+      expect(
+          const DeepCollectionEquality()
+              .equals(result.toList(), expected.toList()),
+          isTrue);
+    });
+
+    test('Broadcasting Addition: Different Dimensions', () {
+      var a = NdArray.array([
+        [
+          [1, 2],
+          [3, 4]
+        ],
+        [
+          [5, 6],
+          [7, 8]
+        ]
+      ]); // Shape [2, 2, 2]
+      var b = NdArray.array([10, 20]); // Shape [2] -> broadcasts to [1, 1, 2]
+      var expected = NdArray.array([
+        [
+          [11, 22],
+          [13, 24]
+        ],
+        [
+          [15, 26],
+          [17, 28]
+        ]
+      ]); // Shape [2, 2, 2]
+      var result = a + b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(expected.dtype));
+      expect(
+          const DeepCollectionEquality()
+              .equals(result.toList(), expected.toList()),
+          isTrue);
+    });
+
+    test('Broadcasting Addition: Scalar Array', () {
+      var a = NdArray.array([
+        [1, 2],
+        [3, 4]
+      ]); // Shape [2, 2]
+      // Test broadcasting with a scalar number (handled by the scalar path)
+      var scalar = 10;
+      var expected = NdArray.array([
+        [11, 12],
+        [13, 14]
+      ]); // Shape [2, 2]
+      var result =
+          a + scalar; // Using scalar path implicitly tests scalar broadcasting
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(expected.dtype));
+      expect(
+          const DeepCollectionEquality()
+              .equals(result.toList(), expected.toList()),
+          isTrue);
+
+      // Note: If a dedicated NdArray.scalar() constructor is added later,
+      // a separate test using `a + NdArray.scalar(10)` could be added
+      // to explicitly test broadcasting with a 0-D NdArray.
+    });
+
+    test('Throws ArgumentError for incompatible broadcast shapes', () {
+      var a = NdArray.array([
+        [1, 2, 3],
+        [4, 5, 6]
+      ]); // Shape [2, 3]
+      var b = NdArray.array([10, 20]); // Shape [2] -> Incompatible
+      expect(() => a + b, throwsArgumentError);
+
+      var c = NdArray.zeros([2, 3, 4]);
+      var d = NdArray.zeros([2, 1, 5]); // Incompatible last dimension
+      expect(() => c + d, throwsArgumentError);
+    });
+
+    test('Broadcasting Addition with Empty Arrays', () {
+      var a = NdArray.zeros([2, 0]);
+      var b = NdArray.zeros([0]); // Broadcasts to [2, 0]
+      var expected = NdArray.zeros([2, 0]);
+      var result = a + b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.size, equals(0));
+
+      var c = NdArray.zeros([0, 3]);
+      var d = NdArray.zeros([1, 3]); // Broadcasts to [0, 3]
+      var expected2 = NdArray.zeros([0, 3]);
+      var result2 = c + d;
+      expect(result2.shape, equals(expected2.shape));
+      expect(result2.size, equals(0));
+
+      var e = NdArray.zeros([0, 0]);
+      var f = NdArray.zeros([1, 0]); // Broadcasts to [0, 0]
+      var expected3 = NdArray.zeros([0, 0]);
+      var result3 = e + f;
+      expect(result3.shape, equals(expected3.shape));
+      expect(result3.size, equals(0));
+
+      // Incompatible empty broadcast
+      var g = NdArray.zeros([2, 0]);
+      var h = NdArray.zeros([3, 0]);
+      expect(() => g + h, throwsArgumentError);
+    });
   }); // End of Addition group
 
   group('NdArray Subtraction (operator-)', () {
+    // --- Existing Tests ---
     test('1D Integer Subtraction', () {
       var a = NdArray.array([5, 7, 9]);
       var b = NdArray.array([1, 2, 3]);
@@ -245,16 +396,14 @@ void main() {
     });
 
     test('Subtraction with Views (Slices)', () {
-      var base = NdArray.arange(10); // [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-      var a = base[[Slice(5, 9)]]; // View [5, 6, 7, 8]
-      var b = base[[Slice(1, 5)]]; // View [1, 2, 3, 4]
+      var base = NdArray.arange(10);
+      var a = base[[Slice(5, 9)]];
+      var b = base[[Slice(1, 5)]];
       var expected = NdArray.array([4, 4, 4, 4]);
       var result = a - b;
-
       expect(result.shape, equals(expected.shape));
       expect(result.dtype, equals(expected.dtype));
       expect(result.toList(), equals(expected.toList()));
-      // Ensure original base array is unchanged
       expect(base.toList(), equals([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]));
     });
 
@@ -279,20 +428,9 @@ void main() {
           isTrue);
     });
 
-    test('Throws ArgumentError for different shapes', () {
-      var a = NdArray.array([1, 2, 3]);
-      var b = NdArray.array([4, 5]);
-      expect(() => a - b, throwsArgumentError);
-
-      var c = NdArray.zeros([2, 3]);
-      var d = NdArray.zeros([3, 2]);
-      expect(() => c - d, throwsArgumentError);
-    });
-
     test('Throws ArgumentError for different dtypes (currently)', () {
       var a = NdArray.array([1, 2, 3], dtype: Int32List);
       var b = NdArray.array([4.0, 5.0, 6.0], dtype: Float64List);
-      // Expect error because current implementation requires same dtype
       expect(() => a - b, throwsArgumentError);
     });
 
@@ -302,7 +440,7 @@ void main() {
       var expected = NdArray.array([1, 2, 3]);
       var result = a - scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype)); // Should remain int
+      expect(result.dtype, equals(expected.dtype));
       expect(result.toList(), equals(expected.toList()));
     });
 
@@ -312,7 +450,7 @@ void main() {
       var expected = NdArray.array([1.0, 2.5, 3.0]);
       var result = a - scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype)); // Should remain double
+      expect(result.dtype, equals(expected.dtype));
       expect(result.toList(), equals(expected.toList()));
     });
 
@@ -320,12 +458,11 @@ void main() {
         () {
       var a = NdArray.array([1, 2, 3]);
       var scalar = 0.5;
-      // Expect result to be double
       var expected = NdArray.array([0.5, 1.5, 2.5], dtype: Float64List);
       var result = a - scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(double)); // Check element type
-      expect(result.data, isA<Float64List>()); // Check underlying data type
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
       expect(result.toList(), equals(expected.toList()));
     });
 
@@ -349,8 +486,8 @@ void main() {
     });
 
     test('Scalar Subtraction with View', () {
-      var base = NdArray.arange(6).reshape([2, 3]); // [[0, 1, 2], [3, 4, 5]]
-      var view = base[[Slice(null, null), Slice(1, null)]]; // [[1, 2], [4, 5]]
+      var base = NdArray.arange(6).reshape([2, 3]);
+      var view = base[[Slice(null, null), Slice(1, null)]];
       var scalar = 1;
       var expected = NdArray.array([
         [0, 1],
@@ -363,7 +500,6 @@ void main() {
           const DeepCollectionEquality()
               .equals(result.toList(), expected.toList()),
           isTrue);
-      // Ensure original base is unchanged
       expect(
           base.toList(),
           equals([
@@ -375,8 +511,7 @@ void main() {
     test('Scalar Subtraction with Empty Array', () {
       var a = NdArray.zeros([0]);
       var scalar = 5;
-      var expected =
-          NdArray.zeros([0]); // Subtracting from empty results in empty
+      var expected = NdArray.zeros([0]);
       var result = a - scalar;
       expect(result.shape, equals(expected.shape));
       expect(result.size, equals(0));
@@ -390,11 +525,60 @@ void main() {
       expect(() => a - null, throwsArgumentError);
     });
 
-    // Note: We don't explicitly test num - NdArray because Dart's operator
-    // resolution doesn't allow defining that directly on the NdArray class.
+    // --- Broadcasting Tests ---
+    test('Broadcasting Subtraction: 2D - 1D (Row)', () {
+      var a = NdArray.array([
+        [11, 22, 33],
+        [14, 25, 36]
+      ]); // Shape [2, 3]
+      var b = NdArray.array([10, 20, 30]); // Shape [3]
+      var expected = NdArray.array([
+        [1, 2, 3],
+        [4, 5, 6]
+      ]); // Shape [2, 3]
+      var result = a - b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(expected.dtype));
+      expect(
+          const DeepCollectionEquality()
+              .equals(result.toList(), expected.toList()),
+          isTrue);
+    });
+
+    test('Broadcasting Subtraction: 2D - 1D (Column)', () {
+      var a = NdArray.array([
+        [11, 12, 13],
+        [24, 25, 26]
+      ]); // Shape [2, 3]
+      var b = NdArray.array([
+        [10],
+        [20]
+      ]); // Shape [2, 1]
+      var expected = NdArray.array([
+        [1, 2, 3],
+        [4, 5, 6]
+      ]); // Shape [2, 3]
+      var result = a - b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(expected.dtype));
+      expect(
+          const DeepCollectionEquality()
+              .equals(result.toList(), expected.toList()),
+          isTrue);
+    });
+
+    test('Throws ArgumentError for incompatible broadcast shapes', () {
+      var a = NdArray.array([
+        [1, 2, 3],
+        [4, 5, 6]
+      ]); // Shape [2, 3]
+      var b = NdArray.array([10, 20]); // Shape [2] -> Incompatible
+      expect(() => a - b, throwsArgumentError);
+    });
   }); // End of Subtraction group
 
   group('NdArray Multiplication (operator*)', () {
+    // --- Existing Tests ---
     test('1D Integer Multiplication', () {
       var a = NdArray.array([1, 2, 3]);
       var b = NdArray.array([4, 5, 6]);
@@ -456,16 +640,14 @@ void main() {
     });
 
     test('Multiplication with Views (Slices)', () {
-      var base = NdArray.arange(10); // [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-      var a = base[[Slice(1, 5)]]; // View [1, 2, 3, 4]
-      var b = base[[Slice(5, 9)]]; // View [5, 6, 7, 8]
+      var base = NdArray.arange(10);
+      var a = base[[Slice(1, 5)]];
+      var b = base[[Slice(5, 9)]];
       var expected = NdArray.array([5, 12, 21, 32]);
       var result = a * b;
-
       expect(result.shape, equals(expected.shape));
       expect(result.dtype, equals(expected.dtype));
       expect(result.toList(), equals(expected.toList()));
-      // Ensure original base array is unchanged
       expect(base.toList(), equals([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]));
     });
 
@@ -490,13 +672,19 @@ void main() {
           isTrue);
     });
 
+    test('Throws ArgumentError for different dtypes (currently)', () {
+      var a = NdArray.array([1, 2, 3], dtype: Int32List);
+      var b = NdArray.array([4.0, 5.0, 6.0], dtype: Float64List);
+      expect(() => a * b, throwsArgumentError);
+    });
+
     test('Scalar Multiplication (NdArray * int)', () {
       var a = NdArray.array([1, 2, 3]);
       var scalar = 10;
       var expected = NdArray.array([10, 20, 30]);
       var result = a * scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype)); // Should remain int
+      expect(result.dtype, equals(expected.dtype));
       expect(result.toList(), equals(expected.toList()));
     });
 
@@ -506,7 +694,7 @@ void main() {
       var expected = NdArray.array([2.0, 5.0, 6.0]);
       var result = a * scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype)); // Should remain double
+      expect(result.dtype, equals(expected.dtype));
       expect(result.toList(), equals(expected.toList()));
     });
 
@@ -515,12 +703,11 @@ void main() {
         () {
       var a = NdArray.array([1, 2, 3]);
       var scalar = 0.5;
-      // Expect result to be double
       var expected = NdArray.array([0.5, 1.0, 1.5], dtype: Float64List);
       var result = a * scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(double)); // Check element type
-      expect(result.data, isA<Float64List>()); // Check underlying data type
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
       expect(result.toList(), equals(expected.toList()));
     });
 
@@ -544,8 +731,8 @@ void main() {
     });
 
     test('Scalar Multiplication with View', () {
-      var base = NdArray.arange(6).reshape([2, 3]); // [[0, 1, 2], [3, 4, 5]]
-      var view = base[[Slice(null, null), Slice(1, null)]]; // [[1, 2], [4, 5]]
+      var base = NdArray.arange(6).reshape([2, 3]);
+      var view = base[[Slice(null, null), Slice(1, null)]];
       var scalar = 2;
       var expected = NdArray.array([
         [2, 4],
@@ -558,7 +745,6 @@ void main() {
           const DeepCollectionEquality()
               .equals(result.toList(), expected.toList()),
           isTrue);
-      // Ensure original base is unchanged
       expect(
           base.toList(),
           equals([
@@ -570,7 +756,7 @@ void main() {
     test('Scalar Multiplication with Empty Array', () {
       var a = NdArray.zeros([0]);
       var scalar = 5;
-      var expected = NdArray.zeros([0]); // Multiplying empty results in empty
+      var expected = NdArray.zeros([0]);
       var result = a * scalar;
       expect(result.shape, equals(expected.shape));
       expect(result.size, equals(0));
@@ -584,23 +770,54 @@ void main() {
       expect(() => a * null, throwsArgumentError);
     });
 
-    // Note: We don't explicitly test num * NdArray because Dart's operator
-    // resolution doesn't allow defining that directly on the NdArray class.
-
-    test('Throws ArgumentError for different shapes', () {
-      var a = NdArray.array([1, 2, 3]);
-      var b = NdArray.array([4, 5]);
-      expect(() => a * b, throwsArgumentError);
-
-      var c = NdArray.zeros([2, 3]);
-      var d = NdArray.zeros([3, 2]);
-      expect(() => c * d, throwsArgumentError);
+    // --- Broadcasting Tests ---
+    test('Broadcasting Multiplication: 2D * 1D (Row)', () {
+      var a = NdArray.array([
+        [1, 2, 3],
+        [4, 5, 6]
+      ]); // Shape [2, 3]
+      var b = NdArray.array([10, 20, 30]); // Shape [3]
+      var expected = NdArray.array([
+        [10, 40, 90],
+        [40, 100, 180]
+      ]); // Shape [2, 3]
+      var result = a * b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(expected.dtype));
+      expect(
+          const DeepCollectionEquality()
+              .equals(result.toList(), expected.toList()),
+          isTrue);
     });
 
-    test('Throws ArgumentError for different dtypes (currently)', () {
-      var a = NdArray.array([1, 2, 3], dtype: Int32List);
-      var b = NdArray.array([4.0, 5.0, 6.0], dtype: Float64List);
-      // Expect error because current implementation requires same dtype
+    test('Broadcasting Multiplication: 2D * 1D (Column)', () {
+      var a = NdArray.array([
+        [1, 2, 3],
+        [4, 5, 6]
+      ]); // Shape [2, 3]
+      var b = NdArray.array([
+        [10],
+        [20]
+      ]); // Shape [2, 1]
+      var expected = NdArray.array([
+        [10, 20, 30],
+        [80, 100, 120]
+      ]); // Shape [2, 3]
+      var result = a * b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(expected.dtype));
+      expect(
+          const DeepCollectionEquality()
+              .equals(result.toList(), expected.toList()),
+          isTrue);
+    });
+
+    test('Throws ArgumentError for incompatible broadcast shapes', () {
+      var a = NdArray.array([
+        [1, 2, 3],
+        [4, 5, 6]
+      ]); // Shape [2, 3]
+      var b = NdArray.array([10, 20]); // Shape [2] -> Incompatible
       expect(() => a * b, throwsArgumentError);
     });
   }); // End of Multiplication group
@@ -613,7 +830,7 @@ void main() {
       var expected = NdArray.array([1.0, 2.0, 3.0], dtype: Float64List);
       var result = a / scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(double)); // Division always results in double
+      expect(result.dtype, equals(double));
       expect(result.data, isA<Float64List>());
       expect(result.toList(), equals(expected.toList()));
     });
@@ -632,12 +849,11 @@ void main() {
     test('Scalar Division with Type Promotion (int Array / int scalar)', () {
       var a = NdArray.array([5, 10, 15]);
       var scalar = 2;
-      // Expect result to be double
       var expected = NdArray.array([2.5, 5.0, 7.5], dtype: Float64List);
       var result = a / scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(double)); // Check element type
-      expect(result.data, isA<Float64List>()); // Check underlying data type
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
       expect(result.toList(), equals(expected.toList()));
     });
 
@@ -662,8 +878,8 @@ void main() {
     });
 
     test('Scalar Division with View', () {
-      var base = NdArray.arange(6).reshape([2, 3]); // [[0, 1, 2], [3, 4, 5]]
-      var view = base[[Slice(null, null), Slice(1, null)]]; // [[1, 2], [4, 5]]
+      var base = NdArray.arange(6).reshape([2, 3]);
+      var view = base[[Slice(null, null), Slice(1, null)]];
       var scalar = 2;
       var expected = NdArray.array([
         [0.5, 1.0],
@@ -677,7 +893,6 @@ void main() {
           const DeepCollectionEquality()
               .equals(result.toList(), expected.toList()),
           isTrue);
-      // Ensure original base is unchanged
       expect(
           base.toList(),
           equals([
@@ -689,8 +904,7 @@ void main() {
     test('Scalar Division with Empty Array', () {
       var a = NdArray.zeros([0]);
       var scalar = 5;
-      var expected = NdArray.zeros([0],
-          dtype: Float64List); // Result is double, but still empty
+      var expected = NdArray.zeros([0], dtype: Float64List);
       var result = a / scalar;
       expect(result.shape, equals(expected.shape));
       expect(result.size, equals(0));
@@ -708,7 +922,7 @@ void main() {
       var listResult = result.toList();
       expect(listResult[0], equals(double.infinity));
       expect(listResult[1], equals(double.negativeInfinity));
-      expect(listResult[2].isNaN, isTrue); // 0.0 / 0.0 is NaN
+      expect(listResult[2].isNaN, isTrue);
       expect(listResult[3], equals(double.infinity));
     });
 
@@ -721,7 +935,7 @@ void main() {
       var listResult = result.toList();
       expect(listResult[0], equals(double.infinity));
       expect(listResult[1], equals(double.negativeInfinity));
-      expect(listResult[2].isNaN, isTrue); // 0 / 0 is NaN
+      expect(listResult[2].isNaN, isTrue);
       expect(listResult[3], equals(double.infinity));
     });
 
@@ -790,20 +1004,16 @@ void main() {
     });
 
     test('Array Division with Views', () {
-      var baseA = NdArray.arange(10,
-          stop: 20); // [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
-      var baseB = NdArray.arange(1,
-          stop: 11); // [ 1,  2,  3,  4,  5,  6,  7,  8,  9, 10]
-      var a = baseA[[Slice(0, 4)]]; // View [10, 11, 12, 13]
-      var b = baseB[[Slice(1, 5)]]; // View [ 2,  3,  4,  5]
+      var baseA = NdArray.arange(10, stop: 20);
+      var baseB = NdArray.arange(1, stop: 11);
+      var a = baseA[[Slice(0, 4)]];
+      var b = baseB[[Slice(1, 5)]];
       var expected =
           NdArray.array([5.0, 11.0 / 3.0, 3.0, 13.0 / 5.0], dtype: Float64List);
       var result = a / b;
-
       expect(result.shape, equals(expected.shape));
       expect(result.dtype, equals(double));
       expect(result.data, isA<Float64List>());
-      // Use closeTo for floating point comparisons
       expect(result.toList()[0], closeTo(5.0, 1e-9));
       expect(result.toList()[1], closeTo(11.0 / 3.0, 1e-9));
       expect(result.toList()[2], closeTo(3.0, 1e-9));
@@ -819,22 +1029,21 @@ void main() {
       var listResult = result.toList();
       expect(listResult[0], equals(double.infinity));
       expect(listResult[1], equals(double.negativeInfinity));
-      expect(listResult[2].isNaN, isTrue); // 0.0 / 0.0 is NaN
+      expect(listResult[2].isNaN, isTrue);
       expect(listResult[3], equals(double.infinity));
-      expect(listResult[4], equals(double.infinity)); // Corrected expectation
+      expect(listResult[4], equals(double.infinity));
     });
 
     test('Array Division of Zeros by Non-Zeros', () {
       var a = NdArray.array([0.0, 0, 0.0]);
       var b = NdArray.array([1.0, 2, -5.0]);
-      var expected = NdArray.array([0.0, 0.0, -0.0],
-          dtype: Float64List); // 0.0 / -5.0 is -0.0
+      var expected = NdArray.array([0.0, 0.0, -0.0], dtype: Float64List);
       var result = a / b;
       expect(result.shape, equals(expected.shape));
       expect(result.dtype, equals(double));
       expect(result.data, isA<Float64List>());
       expect(result.toList(), equals(expected.toList()));
-      expect(result.toList()[2].isNegative, isTrue); // Check for negative zero
+      expect(result.toList()[2].isNegative, isTrue);
     });
 
     test('Array Division of Empty Arrays', () {
@@ -862,29 +1071,84 @@ void main() {
           isTrue);
     });
 
-    test('Throws ArgumentError for different shapes in Array Division', () {
-      var a = NdArray.array([1, 2, 3]);
-      var b = NdArray.array([4, 5]);
-      expect(() => a / b, throwsArgumentError);
-
-      var c = NdArray.zeros([2, 3]);
-      var d = NdArray.zeros([3, 2]);
-      expect(() => c / d, throwsArgumentError);
-    });
-
-    // Note: Array-Array division currently always results in double,
-    // so testing different dtypes isn't strictly necessary for correctness checks,
-    // but we can add one to confirm the behavior.
     test('Array Division with different dtypes (results in double)', () {
       var a = NdArray.array([10, 20, 30], dtype: Int32List);
       var b = NdArray.array([2.0, 5.0, 10.0], dtype: Float64List);
       var expected = NdArray.array([5.0, 4.0, 3.0], dtype: Float64List);
-      var result =
-          a / b; // Should work as both are converted to double internally
+      var result = a / b;
       expect(result.shape, equals(expected.shape));
       expect(result.dtype, equals(double));
       expect(result.data, isA<Float64List>());
       expect(result.toList(), equals(expected.toList()));
+    });
+
+    // --- Broadcasting Tests ---
+    test('Broadcasting Division: 2D / 1D (Row)', () {
+      var a = NdArray.array([
+        [10, 40, 90],
+        [40, 100, 180]
+      ]); // Shape [2, 3]
+      var b = NdArray.array([10, 20, 30]); // Shape [3]
+      var expected = NdArray.array([
+        [1.0, 2.0, 3.0],
+        [4.0, 5.0, 6.0]
+      ], dtype: Float64List); // Shape [2, 3]
+      var result = a / b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
+      expect(
+          const DeepCollectionEquality()
+              .equals(result.toList(), expected.toList()),
+          isTrue);
+    });
+
+    test('Broadcasting Division: 2D / 1D (Column)', () {
+      var a = NdArray.array([
+        [10, 20, 30],
+        [80, 100, 120]
+      ]); // Shape [2, 3]
+      var b = NdArray.array([
+        [10],
+        [20]
+      ]); // Shape [2, 1]
+      var expected = NdArray.array([
+        [1.0, 2.0, 3.0],
+        [4.0, 5.0, 6.0]
+      ], dtype: Float64List); // Shape [2, 3]
+      var result = a / b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
+      expect(
+          const DeepCollectionEquality()
+              .equals(result.toList(), expected.toList()),
+          isTrue);
+    });
+
+    test('Broadcasting Division by Zero', () {
+      var a = NdArray.array([
+        [1.0, -2.0],
+        [0.0, 5.0]
+      ]); // Shape [2, 2]
+      var b = NdArray.array([0.0, 1.0]); // Shape [2] -> broadcasts to [1, 2]
+      var result = a / b; // [[1/0, -2/1], [0/0, 5/1]]
+      expect(result.shape, equals([2, 2]));
+      expect(result.dtype, equals(double));
+      var listResult = result.toList();
+      expect(listResult[0][0], equals(double.infinity));
+      expect(listResult[0][1], equals(-2.0));
+      expect(listResult[1][0].isNaN, isTrue);
+      expect(listResult[1][1], equals(5.0));
+    });
+
+    test('Throws ArgumentError for incompatible broadcast shapes', () {
+      var a = NdArray.array([
+        [1, 2, 3],
+        [4, 5, 6]
+      ]); // Shape [2, 3]
+      var b = NdArray.array([10, 20]); // Shape [2] -> Incompatible
+      expect(() => a / b, throwsArgumentError);
     });
   }); // End of Division group
 }
