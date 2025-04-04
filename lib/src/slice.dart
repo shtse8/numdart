@@ -46,8 +46,14 @@ class Slice {
       actualStop = actualStop.clamp(0, length);
     } else {
       // step < 0
-      actualStop = stop ?? -1;
-      if (actualStop < 0) actualStop += length;
+      int? userStop = stop; // Keep track of original user input
+      actualStop = userStop ?? -1; // Default stop is -1 (before beginning)
+
+      if (userStop != null && actualStop < 0) {
+        // Adjust only if stop was provided by user and is negative
+        actualStop += length;
+      }
+      // Clamp stop for negative step. Should be clamped between -1 and length-1.
       actualStop = actualStop.clamp(-1, length - 1);
     }
 

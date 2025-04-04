@@ -12,32 +12,30 @@
     - `NdArray.arange()`
     - `NdArray.linspace()`
   - Basic integer indexing (`operator []`) implemented and tested.
-  - Basic slicing (`operator []` returning view) implemented. (Negative step
-    test skipped due to bug).
+  - Basic slicing (`operator []` returning view) implemented and tested
+    (including negative steps).
 
 ## Known Issues / TODOs
 
-1. **Negative Step Slicing Bug:**
-   - **Symptom:** The test case `1D slicing - negative step` fails. A view
+1. **Negative Step Slicing Bug:** **(RESOLVED)**
+   - **Symptom:** The test case `1D slicing - negative step` failed. A view
      created with `Slice(null, null, -1)` on `NdArray.arange(5)` incorrectly
-     reports `shape=[0]` and `size=0`, although `offsetInBytes=32` and
-     `strides=[-8]` appear correct. Accessing `view[[0]]` returns 0 instead of
-     the expected 4.
-   - **Investigation:** Code review of `Slice.adjust` and `NdArray.operator []`
-     slicing logic did not reveal obvious errors. Debug print statements failed
-     to show output in the test environment. A temporary hack in `Slice.adjust`
-     forcing the correct length made the test pass, suggesting the issue lies in
-     the length calculation within `Slice.adjust` despite appearing logically
-     correct. The formula for `sliceLength` was corrected, but the test still
-     fails without the hack.
-   - **Status:** Test skipped. Needs further investigation, potentially
-     requiring deeper debugging or analysis of underlying Dart behavior.
+     reported `shape=[0]`.
+   - **Investigation:** Debugging revealed the issue was in `Slice.adjust`. When
+     `step` was negative and `stop` was `null`, the `actualStop` was incorrectly
+     adjusted by adding `length`, leading to an incorrect `sliceLength`
+     calculation of 0.
+   - **Fix:** Modified `Slice.adjust` to only adjust negative `stop` values if
+     they were explicitly provided by the user, ensuring the default `stop` of
+     `-1` is handled correctly for negative steps.
+   - **Status:** Resolved. Test `1D slicing - negative step` now passes.
 
-2. **Empty Array Slicing Test Failure:**
-   - **Symptom:** The test case `Slicing results in empty array` also fails,
-     likely related to the negative step bug or how empty shapes/sizes are
-     handled during view creation or access.
-   - **Status:** Test skipped. Should be re-evaluated after fixing issue #1.
+2. **Empty Array Slicing Test Failure:** **(RESOLVED)**
+   - **Symptom:** The test case `Slicing results in empty array` failed.
+   - **Investigation:** This issue was related to the negative step slicing bug
+     (#1).
+   - **Status:** Resolved. Test `Slicing results in empty array` now passes
+     after fixing issue #1.
 
 3. **Implement Slice Assignment:** Extend `operator []=` to handle assigning
    values to slices (requires broadcasting).
