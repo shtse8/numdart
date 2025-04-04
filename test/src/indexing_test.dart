@@ -143,8 +143,7 @@ void main() {
       expect(s.strides, equals([a.strides[0] * 2]));
     });
 
-    test('1D slicing - negative step',
-        skip: 'Negative step slicing bug investigation needed', () {
+    test('1D slicing - negative step', () {
       var a = NdArray.arange(5);
       var s = a[[Slice(null, null, -1)]];
       expect(s.shape, equals([5]));
@@ -228,8 +227,7 @@ void main() {
       expect(sub.strides, equals([a.strides[0] * 2, a.strides[1] * 2]));
     });
 
-    test('Slicing results in empty array',
-        skip: 'Related to negative step or empty slice calculation bug', () {
+    test('Slicing results in empty array', () {
       var a = NdArray.arange(10);
       var s = a[[Slice(5, 5)]];
       expect(s.shape, equals([0]));
@@ -305,4 +303,130 @@ void main() {
       expect(() => a[[0]] = null, throwsArgumentError);
     });
   }); // End of Basic Assignment group
+
+  group('NdArray Slice Assignment (operator []= with scalar)', () {
+    test('1D slice assignment with scalar', () {
+      var a = NdArray.zeros([10]);
+      a[[Slice(2, 7)]] = 5.0;
+      expect(a[[0]], equals(0));
+      expect(a[[1]], equals(0));
+      expect(a[[2]], equals(5));
+      expect(a[[3]], equals(5));
+      expect(a[[4]], equals(5));
+      expect(a[[5]], equals(5));
+      expect(a[[6]], equals(5));
+      expect(a[[7]], equals(0));
+      expect(a[[8]], equals(0));
+      expect(a[[9]], equals(0));
+
+      a[[Slice(null, 3)]] = -1;
+      expect(a[[0]], equals(-1));
+      expect(a[[1]], equals(-1));
+      expect(a[[2]], equals(-1));
+      expect(a[[3]], equals(5)); // Should remain 5
+
+      a[[Slice(8, null)]] = 99;
+      expect(a[[7]], equals(0));
+      expect(a[[8]], equals(99));
+      expect(a[[9]], equals(99));
+    });
+
+    test('1D slice assignment with step', () {
+      var a = NdArray.arange(10);
+      a[[Slice(1, 8, 2)]] = 100;
+      expect(a[[0]], equals(0));
+      expect(a[[1]], equals(100));
+      expect(a[[2]], equals(2));
+      expect(a[[3]], equals(100));
+      expect(a[[4]], equals(4));
+      expect(a[[5]], equals(100));
+      expect(a[[6]], equals(6));
+      expect(a[[7]], equals(100));
+      expect(a[[8]], equals(8));
+      expect(a[[9]], equals(9));
+    });
+
+    test('1D slice assignment with negative step', () {
+      var a = NdArray.arange(5);
+      a[[Slice(null, null, -1)]] = 7;
+      expect(a[[0]], equals(7));
+      expect(a[[1]], equals(7));
+      expect(a[[2]], equals(7));
+      expect(a[[3]], equals(7));
+      expect(a[[4]], equals(7));
+
+      var b = NdArray.arange(6);
+      b[[Slice(4, 1, -2)]] = -5; // Indices 4, 2
+      expect(b[[0]], equals(0));
+      expect(b[[1]], equals(1));
+      expect(b[[2]], equals(-5));
+      expect(b[[3]], equals(3));
+      expect(b[[4]], equals(-5));
+      expect(b[[5]], equals(5));
+    });
+
+    test('2D slice assignment - row', () {
+      var a = NdArray.zeros([3, 4]);
+      a[[1, Slice.all]] = 10;
+      expect(a[[0, 0]], equals(0));
+      expect(a[[1, 0]], equals(10));
+      expect(a[[1, 1]], equals(10));
+      expect(a[[1, 2]], equals(10));
+      expect(a[[1, 3]], equals(10));
+      expect(a[[2, 0]], equals(0));
+    });
+
+    test('2D slice assignment - column', () {
+      var a = NdArray.zeros([3, 4]);
+      a[[Slice.all, 2]] = 20;
+      expect(a[[0, 1]], equals(0));
+      expect(a[[0, 2]], equals(20));
+      expect(a[[1, 2]], equals(20));
+      expect(a[[2, 2]], equals(20));
+      expect(a[[0, 3]], equals(0));
+    });
+
+    test('2D slice assignment - submatrix', () {
+      var a = NdArray.ones([4, 4]);
+      a[[Slice(1, 3), Slice(1, 3)]] = 30; // Assign to the 2x2 center
+      expect(a[[0, 0]], equals(1));
+      expect(a[[0, 1]], equals(1));
+      expect(a[[1, 0]], equals(1));
+      expect(a[[1, 1]], equals(30));
+      expect(a[[1, 2]], equals(30));
+      expect(a[[2, 1]], equals(30));
+      expect(a[[2, 2]], equals(30));
+      expect(a[[3, 3]], equals(1));
+      expect(a[[0, 3]], equals(1));
+      expect(a[[3, 0]], equals(1));
+    });
+
+    test('Slice assignment with type conversion', () {
+      var a = NdArray.zeros([5], dtype: Int32List);
+      a[[Slice(1, 4)]] = 12.7;
+      expect(a[[0]], equals(0));
+      expect(a[[1]], equals(12));
+      expect(a[[2]], equals(12));
+      expect(a[[3]], equals(12));
+      expect(a[[4]], equals(0));
+    });
+
+    test('Slice assignment to empty slice does nothing', () {
+      var a = NdArray.arange(5);
+      var originalData = List.from(a.data.buffer.asInt64List());
+      a[[Slice(2, 2)]] = 99;
+      expect(a.data.buffer.asInt64List(), equals(originalData));
+      a[[Slice(4, 1)]] = 99;
+      expect(a.data.buffer.asInt64List(), equals(originalData));
+    });
+
+    test('Slice assignment with invalid value throws error', () {
+      var a = NdArray.zeros([5]);
+      expect(() => a[[Slice(0, 2)]] = 'hello', throwsArgumentError);
+      expect(() => a[[Slice(0, 2)]] = true, throwsArgumentError);
+      expect(() => a[[Slice(0, 2)]] = null, throwsArgumentError);
+      // TODO: Add test for assigning NdArray when implemented
+      // expect(() => a[[Slice(0, 2)]] = NdArray.zeros([2]), throwsUnimplementedError);
+    });
+  }); // End of Slice Assignment group
 } // End of main

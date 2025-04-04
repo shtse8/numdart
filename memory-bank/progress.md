@@ -37,8 +37,12 @@
    - **Status:** Resolved. Test `Slicing results in empty array` now passes
      after fixing issue #1.
 
-3. **Implement Slice Assignment:** Extend `operator []=` to handle assigning
-   values to slices (requires broadcasting).
+3. **Implement Slice Assignment:** **(Partially Complete)**
+   - Extended `operator []=` to handle assigning **scalar** values to slices.
+   - Implemented helper methods `_getViewDataIndices` and `_assignScalarToView`.
+   - Added comprehensive tests for scalar slice assignment.
+   - **TODO:** Implement assigning an `NdArray` to a slice (requires
+     broadcasting).
 4. **Scalar Handling:** Review and ensure consistent handling for 0-D (scalar)
    arrays across all functions.
 5. **FFI Investigation:** Keep in mind for Phase 3 if performance becomes a

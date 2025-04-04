@@ -509,11 +509,15 @@ class NdArray {
     }
   }
 
-  /// Sets the element at the specified multi-dimensional index to [value].
+  /// Sets the element(s) at the specified multi-dimensional index or slice to [value].
   ///
-  /// [indices] must be a list of integers with length equal to [ndim].
-  /// Each index must be within the bounds of the corresponding dimension.
-  /// Supports negative indexing.
+  /// - If [indices] contains only integers, it sets a single element.
+  /// - If [indices] contains any [Slice] objects, it performs slice assignment.
+  ///   Currently, only assigning a scalar [num] value to a slice is supported.
+  ///
+  /// [indices] must have a length equal to [ndim].
+  /// Integer indices must be within the bounds of the corresponding dimension.
+  /// Supports negative indexing for integers.
   ///
   /// The [value] will be converted to the array's data type ([dtype]).
   ///
@@ -525,42 +529,81 @@ class NdArray {
   /// ```
   ///
   /// Throws [RangeError] if indices are out of bounds or have incorrect length.
-  /// Throws [TypeError] if indices are not integers.
-  /// Throws [ArgumentError] if [value] cannot be converted to the array's dtype.
-  void operator []=(List<int> indices, dynamic value) {
+  /// Throws [TypeError] if indices contain invalid types.
+  /// Throws [ArgumentError] if [value] is not a [num] or cannot be converted.
+  /// Throws [UnimplementedError] if attempting non-scalar slice assignment.
+  void operator []=(List<Object> indices, dynamic value) {
     if (indices.length != ndim) {
       throw RangeError(
           'Incorrect number of indices provided. Expected $ndim, got ${indices.length}.');
     }
-    if (value is! num) {
-      // Currently only support setting numeric values.
-      throw ArgumentError(
-          'Value must be a number (int or double), got ${value.runtimeType}');
-    }
+    bool isSlicing = indices.any((item) => item is Slice);
 
-    int byteOffsetWithinView = 0;
-    for (int i = 0; i < ndim; i++) {
-      int index = indices[i];
-      int dimSize = shape[i];
-      if (index < 0) index += dimSize; // Handle negative indexing
-      if (index < 0 || index >= dimSize) {
-        // Bounds check
-        throw RangeError(
-            'Index $index is out of bounds for dim $i size $dimSize');
+    if (!isSlicing) {
+      // --- Integer Index Assignment ---
+      List<int> intIndices;
+      try {
+        intIndices = indices.cast<int>();
+      } catch (e) {
+        throw ArgumentError(
+            'Invalid index type for integer assignment: expected List<int>, got $indices.');
       }
-      byteOffsetWithinView += index * strides[i];
-    }
 
-    final int finalByteOffset = offsetInBytes + byteOffsetWithinView;
-    final int dataIndex = finalByteOffset ~/ data.elementSizeInBytes;
+      if (value is! num) {
+        throw ArgumentError(
+            'Value for single element assignment must be a number (int or double), got ${value.runtimeType}');
+      }
 
-    // Use the _setDataItem helper which handles type conversion
-    try {
-      // Pass the actual runtime type of the data buffer to _setDataItem (No longer needed)
-      _setDataItem(data, dataIndex, value);
-    } catch (e) {
-      // Catch potential conversion errors from _setDataItem
-      throw ArgumentError('Failed to set value: $e');
+      // Existing integer assignment logic starts here...
+      // (Adjust variable names if needed, e.g., use intIndices instead of indices)
+      int byteOffsetWithinView = 0;
+      for (int i = 0; i < ndim; i++) {
+        int index = intIndices[i]; // Use intIndices
+        int dimSize = shape[i];
+        if (index < 0) index += dimSize; // Handle negative indexing
+        if (index < 0 || index >= dimSize) {
+          // Bounds check
+          throw RangeError(
+              'Index $index is out of bounds for dim $i size $dimSize');
+        }
+        byteOffsetWithinView += index * strides[i];
+      }
+
+      final int finalByteOffset = offsetInBytes + byteOffsetWithinView;
+      final int dataIndex = finalByteOffset ~/ data.elementSizeInBytes;
+
+      // Use the _setDataItem helper which handles type conversion
+      try {
+        _setDataItem(data, dataIndex, value);
+      } catch (e) {
+        // Catch potential conversion errors from _setDataItem
+        throw ArgumentError('Failed to set value: $e');
+      }
+    } else {
+      // --- Slice Assignment ---
+      if (value is NdArray) {
+        // TODO: Implement broadcasting assignment (NdArray = NdArray slice)
+        throw UnimplementedError(
+            'Assigning an NdArray to a slice (broadcasting) is not yet implemented.');
+      } else if (value is! num) {
+        // Handle assigning other invalid types (string, bool, null, etc.)
+        throw ArgumentError(
+            'Value for slice assignment must be a number (int or double), got ${value.runtimeType}');
+      }
+      // If we reach here, value is a num (scalar assignment)
+
+      // Get the target view based on the slices/indices
+      NdArray targetView;
+      try {
+        // Use the existing operator[] to get the view
+        targetView = this[indices];
+      } catch (e) {
+        throw ArgumentError('Invalid slice or index for assignment: $e');
+      }
+
+      // Assign the scalar value to all elements in the view
+      // Assign the scalar value to all elements in the view
+      _assignScalarToView(targetView, value);
     }
   }
 
@@ -663,5 +706,55 @@ class NdArray {
         resolvedShape.length, // New ndim
         offsetInBytes // Offset remains the same for reshape view
         );
+  }
+
+  // --- Private Helper Methods ---
+
+  /// Calculates and returns a list of indices into the underlying data buffer
+  /// corresponding to the elements of this NdArray (potentially a view).
+  List<int> _getViewDataIndices() {
+    if (size == 0) return [];
+
+    final List<int> dataIndices = List<int>.filled(size, 0);
+    final List<int> currentIndices = List<int>.filled(ndim, 0);
+    final int elementSize = data.elementSizeInBytes;
+    int dataIndexCounter = 0;
+
+    for (int i = 0; i < size; i++) {
+      // Calculate byte offset for current logical indices
+      int byteOffsetWithinView = 0;
+      for (int d = 0; d < ndim; d++) {
+        byteOffsetWithinView += currentIndices[d] * strides[d];
+      }
+      final int finalByteOffset = offsetInBytes + byteOffsetWithinView;
+      dataIndices[dataIndexCounter++] = finalByteOffset ~/ elementSize;
+
+      // Increment logical indices (like an odometer)
+      for (int d = ndim - 1; d >= 0; d--) {
+        currentIndices[d]++;
+        if (currentIndices[d] < shape[d]) {
+          break; // No carry-over needed
+        }
+        currentIndices[d] = 0; // Reset and carry-over
+      }
+    }
+    return dataIndices;
+  }
+
+  /// Assigns a scalar value to all elements of the target view.
+  void _assignScalarToView(NdArray targetView, num scalarValue) {
+    // Get the list of actual data indices for the view
+    final List<int> viewDataIndices = targetView._getViewDataIndices();
+
+    // Iterate through the data indices and set the value
+    for (final int dataIndex in viewDataIndices) {
+      try {
+        _setDataItem(targetView.data, dataIndex, scalarValue);
+      } catch (e) {
+        // Provide more context in case of error
+        throw ArgumentError(
+            'Failed to set scalar value $scalarValue to view element at data index $dataIndex: $e');
+      }
+    }
   }
 } // End of NdArray class
