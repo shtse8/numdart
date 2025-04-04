@@ -103,6 +103,102 @@ void main() {
       expect(() => a + b, throwsArgumentError);
     });
 
+    test('Scalar Addition (NdArray + int)', () {
+      var a = NdArray.array([1, 2, 3]);
+      var scalar = 10;
+      var expected = NdArray.array([11, 12, 13]);
+      var result = a + scalar;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(expected.dtype)); // Should remain int
+      expect(result.toList(), equals(expected.toList()));
+    });
+
+    test('Scalar Addition (NdArray + double)', () {
+      var a = NdArray.array([1.0, 2.5, 3.0]);
+      var scalar = 0.5;
+      var expected = NdArray.array([1.5, 3.0, 3.5]);
+      var result = a + scalar;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(expected.dtype)); // Should remain double
+      expect(result.toList(), equals(expected.toList()));
+    });
+
+    test('Scalar Addition with Type Promotion (int Array + double scalar)', () {
+      var a = NdArray.array([1, 2, 3]);
+      var scalar = 0.5;
+      // Expect result to be double
+      var expected = NdArray.array([1.5, 2.5, 3.5], dtype: Float64List);
+      var result = a + scalar;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double)); // Check element type
+      expect(result.data, isA<Float64List>()); // Check underlying data type
+      expect(result.toList(), equals(expected.toList()));
+    });
+
+    test('Scalar Addition with 2D Array', () {
+      var a = NdArray.array([
+        [1, 2],
+        [3, 4]
+      ]);
+      var scalar = 100;
+      var expected = NdArray.array([
+        [101, 102],
+        [103, 104]
+      ]);
+      var result = a + scalar;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(expected.dtype));
+      expect(
+          const DeepCollectionEquality()
+              .equals(result.toList(), expected.toList()),
+          isTrue);
+    });
+
+    test('Scalar Addition with View', () {
+      var base = NdArray.arange(6).reshape([2, 3]); // [[0, 1, 2], [3, 4, 5]]
+      var view = base[[Slice(null, null), Slice(1, null)]]; // [[1, 2], [4, 5]]
+      var scalar = 10;
+      var expected = NdArray.array([
+        [11, 12],
+        [14, 15]
+      ]);
+      var result = view + scalar;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(expected.dtype));
+      expect(
+          const DeepCollectionEquality()
+              .equals(result.toList(), expected.toList()),
+          isTrue);
+      // Ensure original base is unchanged
+      expect(
+          base.toList(),
+          equals([
+            [0, 1, 2],
+            [3, 4, 5]
+          ]));
+    });
+
+    test('Scalar Addition with Empty Array', () {
+      var a = NdArray.zeros([0]);
+      var scalar = 5;
+      var expected = NdArray.zeros([0]); // Adding to empty results in empty
+      var result = a + scalar;
+      expect(result.shape, equals(expected.shape));
+      expect(result.size, equals(0));
+      expect(result.toList(), equals(expected.toList()));
+    });
+
+    test('Throws ArgumentError for invalid scalar type', () {
+      var a = NdArray.array([1, 2, 3]);
+      expect(() => a + 'hello', throwsArgumentError);
+      expect(() => a + true, throwsArgumentError);
+      expect(() => a + null, throwsArgumentError);
+    });
+
+    // Note: We don't explicitly test num + NdArray because Dart's operator
+    // resolution doesn't allow defining that directly on the NdArray class.
+    // If needed, a top-level function or extension method could handle it.
+
     group('NdArray Subtraction (operator-)', () {
       test('1D Integer Subtraction', () {
         var a = NdArray.array([5, 7, 9]);

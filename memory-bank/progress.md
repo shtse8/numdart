@@ -15,6 +15,8 @@
 - **Phase 2 (Math & Broadcasting):** In Progress.
   - Basic element-wise addition (`operator+`) for same-shape, same-dtype arrays
     implemented and tested.
+  - Scalar addition (`NdArray + num`) implemented and tested (includes type
+    promotion).
   - Basic element-wise subtraction (`operator-`) for same-shape, same-dtype
     arrays implemented and tested.
   - Basic element-wise multiplication (`operator*`) for same-shape, same-dtype
@@ -29,10 +31,12 @@
    assignment and many math operations.
 3. **Implement Remaining Basic Math Ops:** `/` for same-shape arrays (consider
    result type and division by zero).
-4. **Implement Scalar Math Ops:** Operations between `NdArray` and scalar values
-   (e.g., `array + 5`, `array * 2`).
-5. **Type Promotion:** Define rules and implement logic for operations between
-   different numeric dtypes.
+4. **Implement Scalar Math Ops:**
+   - **TODO:** Implement scalar subtraction, multiplication, division
+     (`array - scalar`, `array * scalar`, `array / scalar`).
+5. **Type Promotion:**
+   - **TODO:** Define rules and implement logic for array-array operations
+     between different numeric dtypes.
 6. **Scalar Handling:** Review and ensure consistent handling for 0-D (scalar)
    arrays across all functions (especially `toList()`).
 7. **FFI Investigation:** Keep in mind for Phase 3 if performance becomes a

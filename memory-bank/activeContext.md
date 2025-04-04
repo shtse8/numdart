@@ -1,32 +1,33 @@
-# Active Context: NumDart (As of 2025-04-04 ~23:49 Europe/London)
+# Active Context: NumDart (As of 2025-04-04 ~23:51 Europe/London)
 
 ## Current Focus
 
-- **Phase 2 Math Ops:** Implemented basic element-wise multiplication
-  (`operator*`) for `NdArray` instances with the same shape and dtype.
-- Added unit tests for `operator*` covering various scenarios.
+- **Phase 2 Math Ops:** Implemented scalar addition for `operator+`
+  (`NdArray + num`).
+- Handles type promotion (int array + double scalar -> double array).
+- Added unit tests for scalar addition covering various scenarios including type
+  promotion.
 - All tests are currently passing.
 
 ## Recent Changes
 
-- Added `operator*` method to `lib/src/ndarray.dart` for element-wise
-  multiplication of same-shape, same-dtype arrays.
-- Added tests for `operator*` to `test/src/math_operations_test.dart`.
-- (Previous) Implemented `operator+`, `operator-`, and `toList()`. Fixed test
-  structure issues.
+- Modified `operator+` in `lib/src/ndarray.dart` to accept `dynamic` and handle
+  `num` operands.
+- Added scalar addition tests to `test/src/math_operations_test.dart`.
+- Fixed test structure issues in `test/src/math_operations_test.dart` again.
+- (Previous) Implemented `operator*`, `operator-`, `operator+` (array-array),
+  and `toList()`.
 
 ## Next Steps
 
+- Implement scalar subtraction, multiplication, and division (`array - scalar`,
+  `array * scalar`, `array / scalar`).
 - Implement basic element-wise division (`operator/`) for same-shape arrays
-  (result should likely always be double).
-- Implement element-wise operations between an `NdArray` and a scalar value
-  (e.g., `array + 5`, `array * 2`).
-- Consider implementing type promotion for operations between different numeric
-  dtypes (e.g., int + double).
+  (consider result type and division by zero).
+- Consider implementing type promotion for array-array operations.
 
 ## Open Questions / Considerations
 
-- How to best handle type promotion for mixed-type operations? (e.g.,
-  Int64List + Float64List should likely result in Float64List).
+- How to best handle type promotion for mixed-type array-array operations?
 - Division by zero handling: Should it throw an error, return `Infinity`, or
-  `NaN`? (NumPy returns `inf` or `NaN` and raises a warning).
+  `NaN`?
