@@ -841,64 +841,111 @@ class NdArray {
     }
   }
 
-  NdArray operator *(NdArray other) {
-    // --- Array-Array Multiplication --- (Scalar multiplication not yet implemented)
-    if (!const ListEquality().equals(shape, other.shape)) {
-      throw ArgumentError(
-          'Operands could not be broadcast together with shapes $shape and ${other.shape}');
-    }
-    if (dtype != other.dtype) {
-      throw ArgumentError(
-          'Operands must have the same dtype for multiplication (got $dtype and ${other.dtype})');
-      // TODO: Implement type promotion later
-    }
+  NdArray operator *(dynamic other) {
+    if (other is NdArray) {
+      // --- Array-Array Multiplication ---
+      if (!const ListEquality().equals(shape, other.shape)) {
+        throw ArgumentError(
+            'Operands could not be broadcast together with shapes $shape and ${other.shape}');
+      }
+      if (dtype != other.dtype) {
+        throw ArgumentError(
+            'Operands must have the same dtype for multiplication (got $dtype and ${other.dtype})');
+        // TODO: Implement type promotion later
+      }
 
-    Type resultTypedDataType;
-    if (dtype == int) {
-      resultTypedDataType = Int64List;
-    } else if (dtype == double) {
-      resultTypedDataType = Float64List;
+      Type resultTypedDataType;
+      if (dtype == int) {
+        resultTypedDataType = Int64List;
+      } else if (dtype == double) {
+        resultTypedDataType = Float64List;
+      } else {
+        throw StateError("Unexpected element dtype in operator*: $dtype");
+      }
+      final result = NdArray.zeros(shape, dtype: resultTypedDataType);
+
+      if (size == 0) return result;
+
+      final List<int> currentIndices = List<int>.filled(ndim, 0);
+      final int elementSizeBytes = data.elementSizeInBytes;
+
+      for (int i = 0; i < size; i++) {
+        int thisByteOffset = offsetInBytes;
+        for (int d = 0; d < ndim; d++) {
+          thisByteOffset += currentIndices[d] * strides[d];
+        }
+        final int thisDataIndex = thisByteOffset ~/ elementSizeBytes;
+
+        int otherByteOffset = other.offsetInBytes;
+        for (int d = 0; d < ndim; d++) {
+          otherByteOffset += currentIndices[d] * other.strides[d];
+        }
+        final int otherDataIndex = otherByteOffset ~/ elementSizeBytes;
+
+        int resultByteOffset = 0;
+        for (int d = 0; d < ndim; d++) {
+          resultByteOffset += currentIndices[d] * result.strides[d];
+        }
+        final int resultDataIndex = resultByteOffset ~/ elementSizeBytes;
+
+        final dynamic val1 = _getDataItem(data, thisDataIndex);
+        final dynamic val2 = _getDataItem(other.data, otherDataIndex);
+        final dynamic product = val1 * val2;
+        _setDataItem(result.data, resultDataIndex, product);
+
+        for (int d = ndim - 1; d >= 0; d--) {
+          currentIndices[d]++;
+          if (currentIndices[d] < shape[d]) break;
+          currentIndices[d] = 0;
+        }
+      }
+      return result;
+    } else if (other is num) {
+      // --- Array-Scalar Multiplication ---
+      final num scalar = other;
+      Type resultTypedDataType;
+      if (dtype == double || scalar is double) {
+        resultTypedDataType = Float64List; // Promote to double
+      } else if (dtype == int) {
+        resultTypedDataType = Int64List; // Stays int
+      } else {
+        throw StateError("Unexpected element dtype in operator*: $dtype");
+      }
+      final result = NdArray.zeros(shape, dtype: resultTypedDataType);
+      if (size == 0) return result;
+
+      final List<int> currentIndices = List<int>.filled(ndim, 0);
+      final int elementSizeBytes = data.elementSizeInBytes;
+      final int resultElementSizeBytes = result.data.elementSizeInBytes;
+
+      for (int i = 0; i < size; i++) {
+        int thisByteOffset = offsetInBytes;
+        for (int d = 0; d < ndim; d++) {
+          thisByteOffset += currentIndices[d] * strides[d];
+        }
+        final int thisDataIndex = thisByteOffset ~/ elementSizeBytes;
+
+        int resultByteOffset = 0;
+        for (int d = 0; d < ndim; d++) {
+          resultByteOffset += currentIndices[d] * result.strides[d];
+        }
+        final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
+
+        final dynamic val1 = _getDataItem(data, thisDataIndex);
+        final dynamic product = val1 * scalar; // Changed operation
+        _setDataItem(result.data, resultDataIndex, product);
+
+        for (int d = ndim - 1; d >= 0; d--) {
+          currentIndices[d]++;
+          if (currentIndices[d] < shape[d]) break;
+          currentIndices[d] = 0;
+        }
+      }
+      return result;
     } else {
-      throw StateError("Unexpected element dtype in operator*: $dtype");
+      throw ArgumentError(
+          'Unsupported operand type for *: ${other.runtimeType}');
     }
-    final result = NdArray.zeros(shape, dtype: resultTypedDataType);
-
-    if (size == 0) return result;
-
-    final List<int> currentIndices = List<int>.filled(ndim, 0);
-    final int elementSizeBytes = data.elementSizeInBytes;
-
-    for (int i = 0; i < size; i++) {
-      int thisByteOffset = offsetInBytes;
-      for (int d = 0; d < ndim; d++) {
-        thisByteOffset += currentIndices[d] * strides[d];
-      }
-      final int thisDataIndex = thisByteOffset ~/ elementSizeBytes;
-
-      int otherByteOffset = other.offsetInBytes;
-      for (int d = 0; d < ndim; d++) {
-        otherByteOffset += currentIndices[d] * other.strides[d];
-      }
-      final int otherDataIndex = otherByteOffset ~/ elementSizeBytes;
-
-      int resultByteOffset = 0;
-      for (int d = 0; d < ndim; d++) {
-        resultByteOffset += currentIndices[d] * result.strides[d];
-      }
-      final int resultDataIndex = resultByteOffset ~/ elementSizeBytes;
-
-      final dynamic val1 = _getDataItem(data, thisDataIndex);
-      final dynamic val2 = _getDataItem(other.data, otherDataIndex);
-      final dynamic product = val1 * val2;
-      _setDataItem(result.data, resultDataIndex, product);
-
-      for (int d = ndim - 1; d >= 0; d--) {
-        currentIndices[d]++;
-        if (currentIndices[d] < shape[d]) break;
-        currentIndices[d] = 0;
-      }
-    }
-    return result;
   }
 
   // --- Private Helper Methods ---

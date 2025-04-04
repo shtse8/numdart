@@ -488,6 +488,106 @@ void main() {
               isTrue);
         });
 
+        test('Scalar Multiplication (NdArray * int)', () {
+          var a = NdArray.array([1, 2, 3]);
+          var scalar = 10;
+          var expected = NdArray.array([10, 20, 30]);
+          var result = a * scalar;
+          expect(result.shape, equals(expected.shape));
+          expect(result.dtype, equals(expected.dtype)); // Should remain int
+          expect(result.toList(), equals(expected.toList()));
+        });
+
+        test('Scalar Multiplication (NdArray * double)', () {
+          var a = NdArray.array([1.0, 2.5, 3.0]);
+          var scalar = 2.0;
+          var expected = NdArray.array([2.0, 5.0, 6.0]);
+          var result = a * scalar;
+          expect(result.shape, equals(expected.shape));
+          expect(result.dtype, equals(expected.dtype)); // Should remain double
+          expect(result.toList(), equals(expected.toList()));
+        });
+
+        test(
+            'Scalar Multiplication with Type Promotion (int Array * double scalar)',
+            () {
+          var a = NdArray.array([1, 2, 3]);
+          var scalar = 0.5;
+          // Expect result to be double
+          var expected = NdArray.array([0.5, 1.0, 1.5], dtype: Float64List);
+          var result = a * scalar;
+          expect(result.shape, equals(expected.shape));
+          expect(result.dtype, equals(double)); // Check element type
+          expect(result.data, isA<Float64List>()); // Check underlying data type
+          expect(result.toList(), equals(expected.toList()));
+        });
+
+        test('Scalar Multiplication with 2D Array', () {
+          var a = NdArray.array([
+            [1, 2],
+            [3, 4]
+          ]);
+          var scalar = 3;
+          var expected = NdArray.array([
+            [3, 6],
+            [9, 12]
+          ]);
+          var result = a * scalar;
+          expect(result.shape, equals(expected.shape));
+          expect(result.dtype, equals(expected.dtype));
+          expect(
+              const DeepCollectionEquality()
+                  .equals(result.toList(), expected.toList()),
+              isTrue);
+        });
+
+        test('Scalar Multiplication with View', () {
+          var base =
+              NdArray.arange(6).reshape([2, 3]); // [[0, 1, 2], [3, 4, 5]]
+          var view =
+              base[[Slice(null, null), Slice(1, null)]]; // [[1, 2], [4, 5]]
+          var scalar = 2;
+          var expected = NdArray.array([
+            [2, 4],
+            [8, 10]
+          ]);
+          var result = view * scalar;
+          expect(result.shape, equals(expected.shape));
+          expect(result.dtype, equals(expected.dtype));
+          expect(
+              const DeepCollectionEquality()
+                  .equals(result.toList(), expected.toList()),
+              isTrue);
+          // Ensure original base is unchanged
+          expect(
+              base.toList(),
+              equals([
+                [0, 1, 2],
+                [3, 4, 5]
+              ]));
+        });
+
+        test('Scalar Multiplication with Empty Array', () {
+          var a = NdArray.zeros([0]);
+          var scalar = 5;
+          var expected =
+              NdArray.zeros([0]); // Multiplying empty results in empty
+          var result = a * scalar;
+          expect(result.shape, equals(expected.shape));
+          expect(result.size, equals(0));
+          expect(result.toList(), equals(expected.toList()));
+        });
+
+        test('Throws ArgumentError for invalid scalar type', () {
+          var a = NdArray.array([1, 2, 3]);
+          expect(() => a * 'hello', throwsArgumentError);
+          expect(() => a * true, throwsArgumentError);
+          expect(() => a * null, throwsArgumentError);
+        });
+
+        // Note: We don't explicitly test num * NdArray because Dart's operator
+        // resolution doesn't allow defining that directly on the NdArray class.
+
         test('Throws ArgumentError for different shapes', () {
           var a = NdArray.array([1, 2, 3]);
           var b = NdArray.array([4, 5]);
