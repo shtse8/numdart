@@ -605,6 +605,143 @@ void main() {
           expect(() => a * b, throwsArgumentError);
         });
       }); // End of Multiplication group
+
+      group('NdArray Division (operator/)', () {
+        test('Scalar Division (NdArray / int)', () {
+          var a = NdArray.array([10, 20, 30]);
+          var scalar = 10;
+          var expected = NdArray.array([1.0, 2.0, 3.0], dtype: Float64List);
+          var result = a / scalar;
+          expect(result.shape, equals(expected.shape));
+          expect(result.dtype,
+              equals(double)); // Division always results in double
+          expect(result.data, isA<Float64List>());
+          expect(result.toList(), equals(expected.toList()));
+        });
+
+        test('Scalar Division (NdArray / double)', () {
+          var a = NdArray.array([2.0, 5.0, 6.0]);
+          var scalar = 2.0;
+          var expected = NdArray.array([1.0, 2.5, 3.0], dtype: Float64List);
+          var result = a / scalar;
+          expect(result.shape, equals(expected.shape));
+          expect(result.dtype, equals(double));
+          expect(result.data, isA<Float64List>());
+          expect(result.toList(), equals(expected.toList()));
+        });
+
+        test('Scalar Division with Type Promotion (int Array / int scalar)',
+            () {
+          var a = NdArray.array([5, 10, 15]);
+          var scalar = 2;
+          // Expect result to be double
+          var expected = NdArray.array([2.5, 5.0, 7.5], dtype: Float64List);
+          var result = a / scalar;
+          expect(result.shape, equals(expected.shape));
+          expect(result.dtype, equals(double)); // Check element type
+          expect(result.data, isA<Float64List>()); // Check underlying data type
+          expect(result.toList(), equals(expected.toList()));
+        });
+
+        test('Scalar Division with 2D Array', () {
+          var a = NdArray.array([
+            [3, 6],
+            [9, 12]
+          ]);
+          var scalar = 3;
+          var expected = NdArray.array([
+            [1.0, 2.0],
+            [3.0, 4.0]
+          ], dtype: Float64List);
+          var result = a / scalar;
+          expect(result.shape, equals(expected.shape));
+          expect(result.dtype, equals(double));
+          expect(result.data, isA<Float64List>());
+          expect(
+              const DeepCollectionEquality()
+                  .equals(result.toList(), expected.toList()),
+              isTrue);
+        });
+
+        test('Scalar Division with View', () {
+          var base =
+              NdArray.arange(6).reshape([2, 3]); // [[0, 1, 2], [3, 4, 5]]
+          var view =
+              base[[Slice(null, null), Slice(1, null)]]; // [[1, 2], [4, 5]]
+          var scalar = 2;
+          var expected = NdArray.array([
+            [0.5, 1.0],
+            [2.0, 2.5]
+          ], dtype: Float64List);
+          var result = view / scalar;
+          expect(result.shape, equals(expected.shape));
+          expect(result.dtype, equals(double));
+          expect(result.data, isA<Float64List>());
+          expect(
+              const DeepCollectionEquality()
+                  .equals(result.toList(), expected.toList()),
+              isTrue);
+          // Ensure original base is unchanged
+          expect(
+              base.toList(),
+              equals([
+                [0, 1, 2],
+                [3, 4, 5]
+              ]));
+        });
+
+        test('Scalar Division with Empty Array', () {
+          var a = NdArray.zeros([0]);
+          var scalar = 5;
+          var expected = NdArray.zeros([0],
+              dtype: Float64List); // Result is double, but still empty
+          var result = a / scalar;
+          expect(result.shape, equals(expected.shape));
+          expect(result.size, equals(0));
+          expect(result.dtype, equals(double));
+          expect(result.data, isA<Float64List>());
+          expect(result.toList(), equals(expected.toList()));
+        });
+
+        test('Scalar Division by Zero', () {
+          var a = NdArray.array([1.0, -2.0, 0.0, 5.0]);
+          var scalar = 0;
+          var result = a / scalar;
+          expect(result.dtype, equals(double));
+          expect(result.data, isA<Float64List>());
+          var listResult = result.toList();
+          expect(listResult[0], equals(double.infinity));
+          expect(listResult[1], equals(double.negativeInfinity));
+          expect(listResult[2].isNaN, isTrue); // 0.0 / 0.0 is NaN
+          expect(listResult[3], equals(double.infinity));
+        });
+
+        test('Scalar Division by Zero (Int Array)', () {
+          var a = NdArray.array([1, -2, 0, 5]);
+          var scalar = 0;
+          var result = a / scalar;
+          expect(result.dtype, equals(double));
+          expect(result.data, isA<Float64List>());
+          var listResult = result.toList();
+          expect(listResult[0], equals(double.infinity));
+          expect(listResult[1], equals(double.negativeInfinity));
+          expect(listResult[2].isNaN, isTrue); // 0 / 0 is NaN
+          expect(listResult[3], equals(double.infinity));
+        });
+
+        test('Throws ArgumentError for invalid scalar type', () {
+          var a = NdArray.array([1, 2, 3]);
+          expect(() => a / 'hello', throwsArgumentError);
+          expect(() => a / true, throwsArgumentError);
+          expect(() => a / null, throwsArgumentError);
+        });
+
+        test('Throws UnimplementedError for Array-Array Division', () {
+          var a = NdArray.array([1, 2, 3]);
+          var b = NdArray.array([4, 5, 6]);
+          expect(() => a / b, throwsUnimplementedError);
+        });
+      }); // End of Division group
     }); // End of Subtraction group
   });
 }

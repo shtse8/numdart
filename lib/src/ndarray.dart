@@ -948,6 +948,85 @@ class NdArray {
     }
   }
 
+  /// Performs element-wise division of this array by a scalar (num).
+  ///
+  /// The result is always a double-precision floating-point array (`Float64List`).
+  /// Division by zero follows standard Dart double behavior:
+  /// - `x / 0` where `x > 0` results in `Infinity`.
+  /// - `x / 0` where `x < 0` results in `-Infinity`.
+  /// - `0 / 0` results in `NaN` (Not a Number).
+  ///
+  /// Example:
+  /// ```dart
+  /// var a = NdArray.array([10, 20, 30]);
+  /// var b = a / 10; // b will be NdArray([1.0, 2.0, 3.0], dtype: Float64List)
+  ///
+  /// var c = NdArray.array([1.0, 0.0, -1.0]);
+  /// var d = c / 0; // d will be NdArray([Infinity, NaN, -Infinity], dtype: Float64List)
+  /// ```
+  /// Throws [ArgumentError] if [other] is not a num.
+  /// Throws [UnimplementedError] if [other] is an NdArray (Array-Array division not implemented).
+  NdArray operator /(dynamic other) {
+    if (other is num) {
+      // --- Array-Scalar Division ---
+      final num scalar = other;
+
+      // 1. Result Type is always double for division
+      const Type resultTypedDataType = Float64List;
+
+      // 2. Create Result Array
+      final result = NdArray.zeros(shape, dtype: resultTypedDataType);
+
+      // 3. Element-wise Division using logical indices
+      if (size == 0) return result;
+
+      final List<int> currentIndices = List<int>.filled(ndim, 0);
+      final int elementSizeBytes = data.elementSizeInBytes;
+      final int resultElementSizeBytes =
+          result.data.elementSizeInBytes; // Should be Float64List size
+
+      for (int i = 0; i < size; i++) {
+        // Calculate byte offset for 'this' array
+        int thisByteOffset = offsetInBytes;
+        for (int d = 0; d < ndim; d++) {
+          thisByteOffset += currentIndices[d] * strides[d];
+        }
+        final int thisDataIndex = thisByteOffset ~/ elementSizeBytes;
+
+        // Calculate byte offset for 'result' array
+        int resultByteOffset = 0;
+        for (int d = 0; d < ndim; d++) {
+          resultByteOffset += currentIndices[d] * result.strides[d];
+        }
+        final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
+
+        // Get value and divide by scalar
+        final dynamic val1 = _getDataItem(data, thisDataIndex);
+
+        // Perform division, always resulting in double, handle division by zero
+        final double divisionResult = val1.toDouble() / scalar.toDouble();
+
+        // Set result (which is always double)
+        _setDataItem(result.data, resultDataIndex, divisionResult);
+
+        // Increment logical indices
+        for (int d = ndim - 1; d >= 0; d--) {
+          currentIndices[d]++;
+          if (currentIndices[d] < shape[d]) break;
+          currentIndices[d] = 0;
+        }
+      }
+      return result;
+    } else if (other is NdArray) {
+      // TODO: Implement Array-Array division (requires broadcasting potentially)
+      throw UnimplementedError(
+          'Array-Array division (operator /) is not yet implemented.');
+    } else {
+      throw ArgumentError(
+          'Unsupported operand type for /: ${other.runtimeType}');
+    }
+  }
+
   // --- Private Helper Methods ---
 
   List<int> _getViewDataIndices() {
