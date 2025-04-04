@@ -5,110 +5,127 @@
 To create a Dart package, tentatively named "NumDart", that provides
 functionality similar to Python's NumPy library. The primary goals are:
 
-- **API Compatibility:** Mimic NumPy's flexible and powerful API desig
- n where feasible.
-- **Performance:** Strive for performance comparable to NumPy for core opera
- tions, especially within
-   **Target Platform:** Initially focus on Flutter, with potential for future cross-platform support.
+- **API Compatibility:** Mimic NumPy's flexible and powerful API design where
+  feasible.
+- **Performance:** Strive for performance comparable to NumPy for core
+  operations, especially within the target platform context.
+- **Target Platform:** Initially focus on Flutter, with potential for future
+  cross-platform support.
 
-# 2. Core Requirements (Initial Focus)
+## 2. Core Requirements (Initial Focus)
 
+Based on initial discussion, the priority features for the first phases are:
 
--
-* -ore Data Structure (`NdArray`):**
+- **Core Data Structure (`NdArray`):**
   - Multi-dimensional array representation.
-  - Internal storage using Dart's `TypedData` for efficienc
-- *   Management of shape, strides, and data types (`dtype`).
- 
-- **Basic Array Creation:** Functions like `array()`, `zeros()`, `ones()`, 
- `arange()`, `linspace()`.
-- **Indexing and Slicing:** Support for integer indexing and range slicing, 
- handling NumPy conventions.
-- **Element-wise Mathematical Operations:** Basic arithmetic (`+`, `-`, `*
- `, `/`) and common math functions (`
-   **Broadcasting:** Implementing NumPy's broadcasting rules for operations between arrays of different shapes.
+  - Internal storage using Dart's `TypedData` for efficiency.
+  - Management of shape, strides, and data types (`dtype`).
+  - Handling of views (shared data buffer with different shape/strides/offset).
+- **Basic Array Creation:** Functions like `array()`, `zeros()`, `ones()`,
+  `arange()`, `linspace()`.
+- **Indexing and Slicing:**
+  - Support for integer indexing (`operator []`).
+  - Support for basic slicing using `Slice` objects (`operator []`).
+  - Support for element assignment (`operator []=`).
+- **Reshaping:** `reshape()` method to change array dimensions (returning a
+  view).
+- **Element-wise Mathematical Operations:** Basic arithmetic (`+`, `-`, `*`,
+  `/`) and common math functions.
+- **Broadcasting:** Implementing NumPy's broadcasting rules for operations
+  between arrays of different shapes.
 
-# 3. Development Plan (Phased Approach)
+## 3. Development Plan (Phased Approach)
 
+### Phase 1: Foundation - Core Data Structure & Basic Operations (Largely Complete)
 
--
-* -asks:**
-   
-  - Design and implement the `NdArray` class using `TypedData`, shape/strides management).
-  - Implement basic array creation functions.
-  - Implement fundamental indexing and slicing logic.
-- *   Set up a robust testing framework (`package:tes
-   **Goal:** Establish a functional core array object.
+- **Tasks:**
+  - Design and implement the `NdArray` class (using `TypedData`,
+    shape/strides/offset management).
+  - Implement basic array creation functions (`array`, `zeros`, `ones`,
+    `arange`, `linspace`).
+  - Implement fundamental indexing (`operator []` for integers) and assignment
+    (`operator []=` for integers).
+  - Implement basic slicing (`operator []` for `Slice` objects, returning
+    views).
+  - Implement `reshape()` method (returning views).
+  - Set up a robust testing framework (`package:test`).
+- **Status:** Mostly complete. Basic slicing has a known bug with negative
+  steps. Slice assignment is pending.
 
-```mermad
+```mermaid
 graph TD
-    A[Design NdArray Core] -> B(Implement Shape/Strides);
+    A[Design NdArray Core] --> B(Implement Shape/Strides/Offset);
     A --> C(Use TypedData);
-    B --> D(mplement Creation Funcs);
+    B --> D(Implement Creation Funcs);
     C --> D;
-    D --> E(Implement Indexng/Slicing);
-   
-``
+    D --> E(Implement Indexing/Slicing/Assignment);
+    E --> F(Implement Reshape);
+    F --> G(Setup Testing);
+```
 
+### Phase 2: Math & Broadcasting (Next Steps)
 
--
-* -asks:**
-   
-  - Implement element-wise mathematical opera
+- **Tasks:**
+  - Implement element-wise mathematical operations (including operator
+    overloading).
   - Implement NumPy's broadcasting mechanism.
-- *   Conduct initial performance analysis and benchmarkin
-   **Goal:** Enable basic numerical computations on arrays.
+  - Implement slice assignment (requires broadcasting).
+  - Conduct initial performance analysis and benchmarking.
+- **Goal:** Enable basic numerical computations on arrays.
 
-```mermad
+```mermaid
 graph TD
-    G[Implement Elem-wise Math]--> H(Basic Arithmetic);
-    G --> I(Common Math Funcs);
-    H --> J(mplement Broadcasting);
-    I --> J;
-   
-``
+    H[Implement Elem-wise Math] --> I(Basic Arithmetic);
+    H --> J(Common Math Funcs);
+    I --> K(Implement Broadcasting);
+    J --> K;
+    K --> L(Implement Slice Assignment);
+    L --> M(Initial Benchmarking);
+```
 
+### Phase 3: Flutter Integration & Optimization
 
--
-* -asks:**
+- **Tasks:**
   - Package the library for Dart/Flutter.
   - Write documentation and usage examples.
-  - Perform detailed performance profiling (Dar DevTools).
-  - _ptimize pure _art code based on profiling.
-   
-  - *If necessary:* Investigate Da
-- *   Refine API based on usability.
- 
-   **Goal:** Deliver a usable and reasonably performant package for Flutter developers.
+  - Perform detailed performance profiling (Dart DevTools).
+  - Optimize pure Dart code based on profiling.
+  - _If necessary:_ Investigate Dart FFI for calling native C/C++ libraries.
+  - Refine API based on usability.
+- **Goal:** Deliver a usable and reasonably performant package for Flutter
+  developers.
 
-```mermad
+```mermaid
 graph TD
-    L[Package Library] --> M(Docs &Examples);
-    M --> N(Performance Profilng);
-    N --> O{Sufficient Perf?};
-    O -- Yes --> P[API Refinement];
-    O -- No -> Q(Investigate FFI);
-   
-``
+    N[Package Library] --> O(Docs & Examples);
+    O --> P(Performance Profiling);
+    P --> Q{Sufficient Perf?};
+    Q -- Yes --> R[API Refinement];
+    Q -- No --> S(Investigate FFI);
+    S --> R;
+```
 
+### Future Stages
 
--
 - Linear Algebra module (`linalg`).
-- Random number generation (`random`)
+- Random number generation (`random`).
 - Advanced indexing (boolean, fancy).
-   Integration with other Dart libraries.
+- Integration with other Dart libraries.
+- Fix known slicing bug.
 
+## 4. Key Challenges
 
--
- 
- 
-- **Performance:** Achieving near-NumPy performance in pure Dart will be diffic
- ult, especially for large datasets
-   **API Complexity:** Faithfully replicating the breadth and nuances of NumPy's API is a significant undertaking.
+- **Performance:** Achieving near-NumPy performance in pure Dart will be
+  difficult. FFI might be required.
+- **API Complexity:** Faithfully replicating NumPy's API nuances is a
+  significant undertaking.
+- **Slicing Bugs:** Debugging issues like the negative step slicing bug can be
+  tricky.
 
+## 5. Initial Decisions
 
--
 - Start development from scratch.
-- Prioritize core array features and ma
-- Use `TypedData` for internal storage
+- Prioritize core array features and math operations for Flutter.
+- Use `TypedData` for internal storage.
 - Adopt a phased development approach.
+- Slicing and reshaping return views, not copies, where possible.
