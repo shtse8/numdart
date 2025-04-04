@@ -40,11 +40,8 @@
    - **Status:** Test skipped. Should be re-evaluated after fixing issue #1.
 
 3. **Implement Slice Assignment:** Extend `operator []=` to handle assigning
-   values to slices (requires broadcasting). values to slices (requires
-   broadcasting).
-4. **Implement `reshape`:** Currently using a temporary, unsafe extension method
-   for testing. Needs a proper implementation considering views/copies.
-5. **Scalar Handling:** Review and ensure consistent handling for 0-D (scalar)
+   values to slices (requires broadcasting).
+4. **Scalar Handling:** Review and ensure consistent handling for 0-D (scalar)
    arrays across all functions.
-6. **FFI Investigation:** Keep in mind for Phase 3 if performance becomes a
+5. **FFI Investigation:** Keep in mind for Phase 3 if performance becomes a
    bottleneck.

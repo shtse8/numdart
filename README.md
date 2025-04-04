@@ -26,11 +26,12 @@ ecosystem.
   (Note: Known bug with negative step slicing).
 - **Basic Assignment:** Set element values using `List<int>` (e.g.,
   `array[[0, 1]] = 5`).
+- **Reshape:** Change array shape using `reshape()` (returns a view).
 
 **Next Steps:**
 
 - Implement slice assignment (`operator []=`).
-- Implement `reshape` method.
+- Implement element-wise mathematical operations.
 - Implement element-wise mathematical operations.
 - Address known slicing bug (see `memory-bank/progress.md`).
 
@@ -38,7 +39,7 @@ ecosystem.
 
 ```yaml
 dependencies:
-    numdart: ^0.0.1 # Or latest version
+  numdart: ^0.0.1 # Or latest version
 ```
 
 ## Usage
@@ -62,6 +63,13 @@ void main() {
   // Assignment
   b[[1]] = 99;
   print(b); // Output: NdArray representing [0, 99, 2, 3]
+
+  // Reshape
+  var d = NdArray.arange(6).reshape([2, 3]);
+  print(d.shape); // Output: [2, 3]
+  // Modifying reshaped view affects original
+  // d[[0, 0]] = 100; // Example assignment on view 'd'
+  // print(NdArray.arange(6)[[0]]); // Would output 100 if above line uncommented
 }
 ```
 
