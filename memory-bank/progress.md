@@ -5,22 +5,18 @@
 - **Phase 1 (Foundation):** Mostly Complete.
   - Core `NdArray` class structure defined (`data`, `shape`, `strides`, `dtype`,
     `size`, `ndim`, `offsetInBytes`).
-  - Basic creation functions implemented and tested:
-    - `NdArray.array()`
-    - `NdArray.zeros()`
-    - `NdArray.ones()`
-    - `NdArray.arange()`
-    - `NdArray.linspace()`
+  - Basic creation functions implemented and tested.
   - Basic integer indexing (`operator []`) implemented and tested.
-  - Basic slicing (`operator []` returning view) implemented and tested
-    (including negative steps).
+  - Basic slicing (`operator []` returning view) implemented and tested.
   - Reshaping (`reshape()` returning view) implemented and tested.
   - Scalar slice assignment (`operator []=`) implemented and tested.
   - Helper method `toList()` implemented and tested.
 
-- **Phase 2 (Math & Broadcasting):** Started.
+- **Phase 2 (Math & Broadcasting):** In Progress.
   - Basic element-wise addition (`operator+`) for same-shape, same-dtype arrays
     implemented and tested.
+  - Basic element-wise subtraction (`operator-`) for same-shape, same-dtype
+    arrays implemented and tested.
 
 ## Known Issues / TODOs
 
@@ -29,9 +25,9 @@
      broadcasting).
 2. **Implement Broadcasting:** Core mechanism needed for NdArray slice
    assignment and many math operations.
-3. **Implement Remaining Basic Math Ops:** `-`, `*`, `/` for same-shape arrays.
-4. **Implement Scalar Math Ops:** Operations between `NdArray` and scalar
-   values.
+3. **Implement Remaining Basic Math Ops:** `*`, `/` for same-shape arrays.
+4. **Implement Scalar Math Ops:** Operations between `NdArray` and scalar values
+   (e.g., `array + 5`, `array * 2`).
 5. **Type Promotion:** Define rules and implement logic for operations between
    different numeric dtypes.
 6. **Scalar Handling:** Review and ensure consistent handling for 0-D (scalar)
