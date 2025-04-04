@@ -1,32 +1,36 @@
-# Active Context: NumDart (As of 2025-04-04 ~23:15 Europe/London)
+# Active Context: NumDart (As of 2025-04-04 ~23:22 Europe/London)
 
 ## Current Focus
 
-- **Implemented scalar slice assignment** for `operator []=`.
-- Added helper methods `_getViewDataIndices` and `_assignScalarToView` to
-  `NdArray`.
-- Added comprehensive tests for scalar slice assignment.
+- **Phase 2 Started:** Implemented basic element-wise addition (`operator+`) for
+  `NdArray` instances with the same shape and dtype.
+- Implemented `toList()` method for `NdArray` to facilitate testing and data
+  inspection.
+- Added unit tests for `operator+` covering various scenarios (1D, 2D, views,
+  empty arrays, error handling).
 - All tests are currently passing.
 
 ## Recent Changes
 
-- Extended `operator []=` in `lib/src/ndarray.dart` to handle slice assignment
-  with scalar values.
-- Added helper methods `_getViewDataIndices` and `_assignScalarToView`.
-- Added new test group 'NdArray Slice Assignment (operator []= with scalar)' to
-  `test/src/indexing_test.dart`.
-- Updated `memory-bank/progress.md`.
-- Fixed error handling logic in `operator []=` for slice assignment.
+- Added `operator+` method to `lib/src/ndarray.dart` for element-wise addition
+  of same-shape, same-dtype arrays.
+- Added `toList()` method to `lib/src/ndarray.dart` to convert `NdArray`
+  (including views) to nested Dart Lists.
+- Created `test/src/math_operations_test.dart` with tests for `operator+`.
+- Fixed issues in `operator+` related to `dtype` handling when creating the
+  result array.
+- Fixed issues in `test/src/math_operations_test.dart` by adding missing
+  `dart:typed_data` import.
 
-## Next Steps (Decision Pending)
+## Next Steps
 
-- **Option 1:** Implement **NdArray slice assignment** (assigning an NdArray to
-  a slice, requires broadcasting).
-- **Option 2:** Begin Phase 2 by implementing basic element-wise mathematical
-  operations (e.g., addition).
-- **Option 3:** Implement other utility methods like `toString()` or `copy()`.
+- Implement other basic element-wise mathematical operations (e.g., `-`, `*`,
+  `/`) for same-shape arrays.
+- Implement element-wise operations between an `NdArray` and a scalar value.
+- Consider implementing type promotion for operations between different numeric
+  dtypes (e.g., int + double).
 
 ## Open Questions / Considerations
 
-- Prioritization between implementing core math functions (Phase 2 start) vs.
-  completing slice assignment (NdArray assignment with broadcasting).
+- How to best handle type promotion for mixed-type operations? (e.g.,
+  Int64List + Float64List should likely result in Float64List).
