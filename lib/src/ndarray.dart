@@ -1018,9 +1018,63 @@ class NdArray {
       }
       return result;
     } else if (other is NdArray) {
-      // TODO: Implement Array-Array division (requires broadcasting potentially)
-      throw UnimplementedError(
-          'Array-Array division (operator /) is not yet implemented.');
+      // --- Array-Array Division ---
+      if (!const ListEquality().equals(shape, other.shape)) {
+        throw ArgumentError(
+            'Operands could not be broadcast together with shapes $shape and ${other.shape}');
+      }
+
+      // Result is always double for division
+      const Type resultTypedDataType = Float64List;
+      final result = NdArray.zeros(shape, dtype: resultTypedDataType);
+
+      if (size == 0) return result;
+
+      final List<int> currentIndices = List<int>.filled(ndim, 0);
+      final int thisElementSizeBytes = data.elementSizeInBytes;
+      final int otherElementSizeBytes = other.data.elementSizeInBytes;
+      final int resultElementSizeBytes = result.data.elementSizeInBytes;
+
+      for (int i = 0; i < size; i++) {
+        // Calculate byte offset for 'this' array
+        int thisByteOffset = offsetInBytes;
+        for (int d = 0; d < ndim; d++) {
+          thisByteOffset += currentIndices[d] * strides[d];
+        }
+        final int thisDataIndex = thisByteOffset ~/ thisElementSizeBytes;
+
+        // Calculate byte offset for 'other' array
+        int otherByteOffset = other.offsetInBytes;
+        for (int d = 0; d < ndim; d++) {
+          otherByteOffset += currentIndices[d] * other.strides[d];
+        }
+        final int otherDataIndex = otherByteOffset ~/ otherElementSizeBytes;
+
+        // Calculate byte offset for 'result' array
+        int resultByteOffset = 0;
+        for (int d = 0; d < ndim; d++) {
+          resultByteOffset += currentIndices[d] * result.strides[d];
+        }
+        final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
+
+        // Get values and divide
+        final dynamic val1 = _getDataItem(data, thisDataIndex);
+        final dynamic val2 = _getDataItem(other.data, otherDataIndex);
+
+        // Perform division, always resulting in double, handle division by zero
+        final double divisionResult = val1.toDouble() / val2.toDouble();
+
+        // Set result (which is always double)
+        _setDataItem(result.data, resultDataIndex, divisionResult);
+
+        // Increment logical indices
+        for (int d = ndim - 1; d >= 0; d--) {
+          currentIndices[d]++;
+          if (currentIndices[d] < shape[d]) break;
+          currentIndices[d] = 0;
+        }
+      }
+      return result;
     } else {
       throw ArgumentError(
           'Unsupported operand type for /: ${other.runtimeType}');
