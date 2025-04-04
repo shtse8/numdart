@@ -537,21 +537,104 @@ class NdArray {
       }
     } else {
       // --- Slice Assignment ---
-      if (value is NdArray) {
-        throw UnimplementedError(
-            'Assigning an NdArray to a slice (broadcasting) is not yet implemented.');
-      } else if (value is! num) {
-        throw ArgumentError(
-            'Value for slice assignment must be a number (int or double), got ${value.runtimeType}');
-      }
-
       NdArray targetView;
       try {
-        targetView = this[indices];
+        targetView = this[indices]; // Get the view representing the slice
       } catch (e) {
-        throw ArgumentError('Invalid slice or index for assignment: $e');
+        throw ArgumentError('Invalid slice or index for assignment target: $e');
       }
-      _assignScalarToView(targetView, value);
+
+      if (value is NdArray) {
+        // --- Assigning an NdArray to a Slice ---
+        final NdArray sourceArray = value;
+
+        // 1. Check dtype compatibility (TODO: Implement type promotion/casting later)
+        if (targetView.dtype != sourceArray.dtype) {
+          throw ArgumentError(
+              'Cannot assign NdArray with dtype ${sourceArray.dtype} to slice with dtype ${targetView.dtype}. Type promotion not yet implemented.');
+        }
+
+        // 2. Check broadcast compatibility
+        final List<int> broadcastShape;
+        try {
+          // The source array must be broadcastable *to* the target view's shape
+          broadcastShape =
+              _calculateBroadcastShape(targetView.shape, sourceArray.shape);
+          // Ensure the broadcast result matches the target view's shape exactly
+          if (!const ListEquality().equals(broadcastShape, targetView.shape)) {
+            throw ArgumentError(
+                'Shape mismatch: Source array shape ${sourceArray.shape} cannot be broadcast to target slice shape ${targetView.shape}');
+          }
+        } catch (e) {
+          throw ArgumentError(
+              'Source array shape ${sourceArray.shape} cannot be broadcast to target slice shape ${targetView.shape}: $e');
+        }
+
+        // 3. Perform element-wise assignment with broadcasting
+        if (targetView.size == 0)
+          return; // Nothing to assign if target is empty
+
+        final int targetNdim = targetView.ndim;
+        final List<int> currentIndices = List<int>.filled(targetNdim, 0);
+        final int targetElementSizeBytes = targetView.data
+            .elementSizeInBytes; // Should be same as this.data.elementSizeInBytes
+        final int sourceElementSizeBytes = sourceArray.data.elementSizeInBytes;
+
+        for (int i = 0; i < targetView.size; i++) {
+          // Calculate byte offset for the target view element
+          int targetByteOffset = targetView.offsetInBytes;
+          for (int d = 0; d < targetNdim; d++) {
+            targetByteOffset += currentIndices[d] * targetView.strides[d];
+          }
+          final int targetDataIndex =
+              targetByteOffset ~/ targetElementSizeBytes;
+
+          // Calculate corresponding byte offset for the source array element (with broadcasting)
+          int sourceByteOffset = sourceArray.offsetInBytes;
+          for (int d = 0; d < targetNdim; d++) {
+            final int idx = currentIndices[d];
+            final int sourceDimIdx =
+                d - (targetNdim - sourceArray.ndim); // Align dimensions
+            if (sourceDimIdx >= 0) {
+              final int sourceDimSize = sourceArray.shape[sourceDimIdx];
+              final int sourceStride = sourceArray.strides[sourceDimIdx];
+              // Use index 0 if the source dimension was broadcast
+              if (sourceDimSize == 1 && targetView.shape[d] > 1) {
+                // Use index 0 for broadcast dimension -> add 0 * stride
+              } else {
+                sourceByteOffset += idx * sourceStride;
+              }
+            }
+            // If sourceDimIdx < 0, this dimension doesn't exist in source, effectively broadcast
+          }
+          final int sourceDataIndex =
+              sourceByteOffset ~/ sourceElementSizeBytes;
+
+          // Get value from source and set it in the target view's data buffer
+          final dynamic sourceValue =
+              _getDataItem(sourceArray.data, sourceDataIndex);
+          try {
+            _setDataItem(targetView.data, targetDataIndex,
+                sourceValue); // Use targetView.data which is same as this.data
+          } catch (e) {
+            throw ArgumentError(
+                'Failed to set value during slice assignment: $e');
+          }
+
+          // Increment multi-dimensional index for the target view shape
+          for (int d = targetNdim - 1; d >= 0; d--) {
+            currentIndices[d]++;
+            if (currentIndices[d] < targetView.shape[d]) break;
+            currentIndices[d] = 0;
+          }
+        }
+      } else if (value is num) {
+        // --- Assigning a Scalar to a Slice ---
+        _assignScalarToView(targetView, value);
+      } else {
+        throw ArgumentError(
+            'Value for slice assignment must be a number or an NdArray, got ${value.runtimeType}');
+      }
     }
   }
 

@@ -1,6 +1,7 @@
 import 'package:test/test.dart';
 import 'dart:typed_data';
 import 'package:numdart/numdart.dart'; // Import the main library
+import 'package:collection/collection.dart'; // For deep equality checks
 
 // Temporary minimal reshape for testing purposes ONLY.
 extension ReshapeForTest on NdArray {
@@ -425,8 +426,166 @@ void main() {
       expect(() => a[[Slice(0, 2)]] = 'hello', throwsArgumentError);
       expect(() => a[[Slice(0, 2)]] = true, throwsArgumentError);
       expect(() => a[[Slice(0, 2)]] = null, throwsArgumentError);
-      // TODO: Add test for assigning NdArray when implemented
-      // expect(() => a[[Slice(0, 2)]] = NdArray.zeros([2]), throwsUnimplementedError);
+      // Test assigning NdArray (should now throw shape/dtype error if incompatible, or work if compatible)
+      // expect(() => a[[Slice(0, 2)]] = NdArray.zeros([3]), throwsArgumentError); // Shape mismatch
+      // expect(() => a[[Slice(0, 2)]] = NdArray.zeros([2], dtype: Float64List), throwsArgumentError); // Dtype mismatch
     });
   }); // End of Slice Assignment group
+
+  group('NdArray Slice Assignment (operator []= with NdArray)', () {
+    test('Assign 1D array to 1D slice (same shape)', () {
+      var a = NdArray.zeros([10]);
+      var b = NdArray.array([1.0, 2.0, 3.0, 4.0, 5.0], dtype: Float64List);
+      a[[Slice(2, 7)]] = b;
+      expect(a.toList(), equals([0, 0, 1, 2, 3, 4, 5, 0, 0, 0]));
+    });
+
+    test('Assign 1D array to 1D slice with step', () {
+      var a = NdArray.zeros([10]);
+      var b = NdArray.array([10.0, 20.0, 30.0, 40.0],
+          dtype: Float64List); // Needs 4 elements
+      a[[Slice(1, 8, 2)]] = b; // Assign to indices 1, 3, 5, 7
+      expect(a.toList(), equals([0, 10, 0, 20, 0, 30, 0, 40, 0, 0]));
+    });
+
+    test('Assign 1D array to 2D slice (row broadcasting)', () {
+      var a = NdArray.zeros([3, 4]);
+      var b =
+          NdArray.array([1.0, 2.0, 3.0, 4.0], dtype: Float64List); // Shape [4]
+      a[[1, Slice.all]] = b; // Assign b to the second row
+      expect(
+          a.toList(),
+          equals([
+            [0, 0, 0, 0],
+            [1, 2, 3, 4],
+            [0, 0, 0, 0]
+          ]));
+
+      a[[Slice(0, 2), Slice.all]] = b; // Assign b broadcasted to first two rows
+      expect(
+          a.toList(),
+          equals([
+            [1, 2, 3, 4],
+            [1, 2, 3, 4],
+            [0, 0, 0, 0]
+          ]));
+    });
+
+    test('Assign 1D array (column) to 2D slice (column broadcasting)', () {
+      var a = NdArray.zeros([3, 4]);
+      // First assignment: Assign a [3] shape array to the [3] shape slice
+      var b1 =
+          NdArray.array([10.0, 20.0, 30.0], dtype: Float64List); // Shape [3]
+      a[[Slice.all, 1]] =
+          b1; // Assign b1 to the second column. Target slice shape is [3]
+      expect(
+          a.toList(),
+          equals([
+            [0, 10, 0, 0],
+            [0, 20, 0, 0],
+            [0, 30, 0, 0]
+          ]));
+
+      // Second assignment: Assign a [3, 1] shape array to the [3, 2] shape slice (broadcasting)
+      var b2 = NdArray.array([100.0, 200.0, 300.0], dtype: Float64List)
+          .reshape([3, 1]); // Shape [3, 1]
+      a[[Slice.all, Slice(2, 4)]] =
+          b2; // Assign b2 broadcasted to last two columns [:, 2:] Target slice shape is [3, 2]
+      expect(
+          a.toList(),
+          equals([
+            // Column 1 remains from b1, Columns 2 & 3 get b2 broadcasted
+            [0, 10, 100, 100],
+            [0, 20, 200, 200],
+            [0, 30, 300, 300]
+          ]));
+    });
+
+    test('Assign 2D array to 2D slice (same shape)', () {
+      var a = NdArray.zeros([4, 4]);
+      var b = NdArray.array([
+        [1.0, 2.0],
+        [3.0, 4.0]
+      ], dtype: Float64List); // Shape [2, 2]
+      a[[Slice(1, 3), Slice(1, 3)]] = b; // Assign to the center 2x2
+      expect(
+          a.toList(),
+          equals([
+            [0, 0, 0, 0],
+            [0, 1, 2, 0],
+            [0, 3, 4, 0],
+            [0, 0, 0, 0]
+          ]));
+    });
+
+    test('Assign 2D array to 2D slice (broadcasting)', () {
+      var a = NdArray.zeros([4, 4]);
+      var b = NdArray.array([
+        [10.0, 20.0]
+      ], dtype: Float64List); // Shape [1, 2]
+      a[[Slice(1, 3), Slice(1, 3)]] = b; // Assign b broadcasted to center 2x2
+      expect(
+          a.toList(),
+          equals([
+            [0, 0, 0, 0],
+            [0, 10, 20, 0], // Row 1 broadcasted
+            [0, 10, 20, 0], // Row 2 broadcasted
+            [0, 0, 0, 0]
+          ]));
+    });
+
+    test('Assign array to a view', () {
+      var base = NdArray.zeros([5, 5]);
+      var view = base[[Slice(1, 4), Slice(1, 4)]]; // Center 3x3 view
+      var b = NdArray.ones([3, 1],
+          dtype: Float64List); // Column vector [1.0], [1.0], [1.0]
+      view[[Slice.all, Slice.all]] =
+          b; // Assign b broadcasted to the whole view
+
+      expect(
+          base.toList(),
+          equals([
+            // Check the original array
+            [0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0],
+            [0, 1, 1, 1, 0],
+            [0, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0]
+          ]));
+    });
+
+    test('Assign empty array to slice', () {
+      var a = NdArray.ones([5]);
+      var b = NdArray.zeros([0]);
+      a[[Slice(1, 1)]] = b; // Assign empty to empty slice
+      expect(a.toList(), equals([1, 1, 1, 1, 1])); // Should be unchanged
+
+      var c = NdArray.ones([2, 3]);
+      var d = NdArray.zeros([2, 0]);
+      c[[Slice.all, Slice(1, 1)]] =
+          d; // Assign empty [2,0] to empty slice [2,0]
+      expect(
+          c.toList(),
+          equals([
+            [1, 1, 1],
+            [1, 1, 1]
+          ])); // Should be unchanged
+    });
+
+    test('Throws ArgumentError for incompatible broadcast shapes', () {
+      var a = NdArray.zeros([4, 4]);
+      var b = NdArray.ones([2, 3]); // Incompatible shape
+      expect(() => a[[Slice(1, 3), Slice(1, 3)]] = b, throwsArgumentError);
+
+      var c = NdArray.zeros([5]);
+      var d = NdArray.ones([4]); // Incompatible shape
+      expect(() => c[[Slice(0, 3)]] = d, throwsArgumentError);
+    });
+
+    test('Throws ArgumentError for different dtypes (currently)', () {
+      var a = NdArray.zeros([4], dtype: Int64List);
+      var b = NdArray.ones([2], dtype: Float64List);
+      expect(() => a[[Slice(1, 3)]] = b, throwsArgumentError);
+    });
+  }); // End of NdArray Slice Assignment group
 } // End of main
