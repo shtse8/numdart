@@ -1,4 +1,6 @@
-# Active Context: NumDart (As of 2025-04-05 ~05:04 Europe/London)
+<!-- Version: 1.1 | Last Updated: 2025-04-05 | Updated By: Cline -->
+
+# Active Context: NumDart (As of 2025-04-05 ~06:19 Europe/London)
 
 ## Current Focus
 
@@ -7,6 +9,8 @@
 
 ## Recent Changes
 
+- **Reorganized Test Directory:** Moved test files into a more structured layout
+  (`test/arithmetic`, `test/elementwise`).
 - **Implemented `NdArray.cos()`:** Added the cosine method and corresponding
   tests.
 - **Implemented `NdArray.sin()`:** Added the sine method and corresponding
