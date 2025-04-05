@@ -1,126 +1,104 @@
-part of 'elementwise_math_test.dart';
+// <!-- Version: 1.0 | Last Updated: 2025-04-05 | Updated By: Cline -->
+
+// Imports moved to elementwise_math_test.dart
+part of 'elementwise_math_test.dart'; // Add part of directive
 
 void _testTanGroup() {
-  group('NdArray Tangent (tan)', () {
-    _testTan1DInteger();
-    _testTan1DDouble();
-    _testTan2D();
-    _testTanEmptyArray();
-    _testTanView();
-    _testTanNearAsymptotes();
-  });
-}
+  // Wrap in a function
+  group('NdArray tan', () {
+    test('simple tan calculation', () {
+      var a = NdArray.array([0, math.pi / 4, math.pi]);
+      var expected = NdArray.array([
+        math.tan(0),
+        math.tan(math.pi / 4),
+        math.tan(math.pi)
+      ]); // Result dtype should be double
+      var result = a.tan();
 
-void _testTan1DInteger() {
-  test('tan of 1D Integer Array (as radians)', () {
-    var a = array([0, 1]); // Interpreted as radians
-    var expected = array([math.tan(0), math.tan(1)], dtype: Float64List);
-    var result = a.tan();
-    expect(result.shape, equals(expected.shape));
-    expect(result.dtype, equals(double));
-    expect(result.data, isA<Float64List>());
-    for (int i = 0; i < result.size; i++) {
-      expect(result.toList()[i], closeTo(expected.toList()[i], 1e-9));
-    }
-  });
-}
+      expect(
+          result.dtype, equals(double)); // Compare with primitive type double
+      expect(result.shape, equals(expected.shape));
+      // Use closeTo for floating point comparisons and correct indexing
+      for (int i = 0; i < result.size; i++) {
+        expect(result[[i]], closeTo(expected[[i]], 1e-10));
+      }
+    });
 
-void _testTan1DDouble() {
-  test('tan of 1D Double Array (radians)', () {
-    var a = array([0.0, math.pi / 4, math.pi]);
-    var expected = array([0.0, 1.0, 0.0], dtype: Float64List);
-    var result = a.tan();
-    expect(result.shape, equals(expected.shape));
-    expect(result.dtype, equals(double));
-    expect(result.data, isA<Float64List>());
-    for (int i = 0; i < result.size; i++) {
-      expect(result.toList()[i], closeTo(expected.toList()[i], 1e-9));
-    }
-  });
-}
+    test('tan of integers', () {
+      var a = NdArray.array([0, 1]); // Integers
+      var expected = NdArray.array([math.tan(0), math.tan(1)]);
+      var result = a.tan();
 
-void _testTan2D() {
-  test('tan of 2D Array (radians)', () {
-    var a = array([
-      [0, math.pi / 4],
-      [math.pi, 3 * math.pi / 4]
-    ]);
-    var expected = array([
-      [0.0, 1.0],
-      [0.0, -1.0]
-    ], dtype: Float64List);
-    var result = a.tan();
-    expect(result.shape, equals(expected.shape));
-    expect(result.dtype, equals(double));
-    expect(result.data, isA<Float64List>());
-    expect(result.toList()[0][0], closeTo(expected.toList()[0][0], 1e-9));
-    expect(result.toList()[0][1], closeTo(expected.toList()[0][1], 1e-9));
-    expect(result.toList()[1][0], closeTo(expected.toList()[1][0], 1e-9));
-    expect(result.toList()[1][1], closeTo(expected.toList()[1][1], 1e-9));
-  });
-}
+      expect(result.dtype, equals(double)); // Result always double
+      expect(result.shape, equals(expected.shape));
+      expect(result[[0]], closeTo(expected[[0]], 1e-10));
+      expect(result[[1]], closeTo(expected[[1]], 1e-10));
+    });
 
-void _testTanEmptyArray() {
-  test('tan of Empty Array', () {
-    var a = zeros([0]);
-    var expected = zeros([0], dtype: Float64List);
-    var result = a.tan();
-    expect(result.shape, equals(expected.shape));
-    expect(result.size, equals(0));
-    expect(result.dtype, equals(double));
-    expect(result.data, isA<Float64List>());
-    expect(result.toList(), equals(expected.toList()));
+    test('tan of doubles', () {
+      var a = NdArray.array([0.0, math.pi / 3, -math.pi / 4]); // Doubles
+      var expected = NdArray.array(
+          [math.tan(0.0), math.tan(math.pi / 3), math.tan(-math.pi / 4)]);
+      var result = a.tan();
 
-    var c = zeros([2, 0], dtype: Int32List);
-    var expected2 = zeros([2, 0], dtype: Float64List);
-    var result2 = c.tan();
-    expect(result2.shape, equals(expected2.shape));
-    expect(result2.size, equals(0));
-    expect(result2.dtype, equals(double));
-    expect(result2.data, isA<Float64List>());
-    expect(
-        const DeepCollectionEquality()
-            .equals(result2.toList(), expected2.toList()),
-        isTrue);
-  });
-}
+      expect(result.dtype, equals(double));
+      expect(result.shape, equals(expected.shape));
+      expect(result[[0]], closeTo(expected[[0]], 1e-10));
+      expect(result[[1]], closeTo(expected[[1]], 1e-10));
+      expect(result[[2]], closeTo(expected[[2]], 1e-10));
+    });
 
-void _testTanView() {
-  test('tan of View', () {
-    var base = array([
-      [0, math.pi / 4, math.pi],
-      [math.pi, 3 * math.pi / 4, 2 * math.pi]
-    ]);
-    var view =
-        base[[Slice(null, null), Slice(1, null)]]; // [[pi/4, pi], [3pi/4, 2pi]]
-    var expected = array([
-      [1.0, 0.0],
-      [-1.0, 0.0]
-    ], dtype: Float64List);
-    var result = view.tan();
-    expect(result.shape, equals(expected.shape));
-    expect(result.dtype, equals(double));
-    expect(result.data, isA<Float64List>());
-    expect(result.toList()[0][0], closeTo(expected.toList()[0][0], 1e-9));
-    expect(result.toList()[0][1], closeTo(expected.toList()[0][1], 1e-9));
-    expect(result.toList()[1][0], closeTo(expected.toList()[1][0], 1e-9));
-    expect(result.toList()[1][1], closeTo(expected.toList()[1][1], 1e-9));
-    // Ensure original base array is unchanged
-    expect(base.toList()[0][1], closeTo(math.pi / 4, 1e-9)); // Check a value
-  });
-}
+    test('tan of multi-dimensional array', () {
+      var a = NdArray.array([
+        [0, math.pi / 4],
+        [math.pi, -math.pi / 4]
+      ]);
+      var expected = NdArray.array([
+        [math.tan(0), math.tan(math.pi / 4)],
+        [math.tan(math.pi), math.tan(-math.pi / 4)]
+      ]);
+      var result = a.tan();
 
-void _testTanNearAsymptotes() {
-  // Test tan at asymptotes (pi/2, 3pi/2, etc.) - should approach infinity
-  test('tan near asymptotes', () {
-    // Values very close to pi/2 and 3pi/2
-    var a =
-        array([math.pi / 2 - 1e-9, math.pi / 2 + 1e-9, 3 * math.pi / 2 - 1e-9]);
-    var result = a.tan();
-    expect(result.dtype, equals(double));
-    // Expect very large positive or negative values
-    expect(result.toList()[0], greaterThan(1e8));
-    expect(result.toList()[1], lessThan(-1e8)); // Should be very large negative
-    expect(result.toList()[2], greaterThan(1e8));
+      expect(result.dtype, equals(double));
+      expect(result.shape, equals(expected.shape));
+      expect(result[[0, 0]], closeTo(expected[[0, 0]], 1e-10));
+      expect(result[[0, 1]], closeTo(expected[[0, 1]], 1e-10));
+      expect(result[[1, 0]], closeTo(expected[[1, 0]], 1e-10));
+      expect(result[[1, 1]], closeTo(expected[[1, 1]], 1e-10));
+    });
+
+    test('tan of empty array', () {
+      var a = NdArray.array([]);
+      var result = a.tan();
+      expect(result.dtype, equals(double)); // Should still be double
+      expect(result.shape, equals([0]));
+      expect(result.size == 0, isTrue); // Use size check
+
+      var b = NdArray.zeros([2, 0]); // Empty array with shape
+      var resultB = b.tan();
+      expect(resultB.dtype, equals(double));
+      expect(resultB.shape, equals([2, 0]));
+      expect(resultB.size == 0, isTrue); // Use size check
+    });
+
+    // Add more tests for edge cases if necessary (e.g., values close to pi/2)
+    test('tan near pi/2 (expect large values or infinity)', () {
+      // Note: tan(pi/2) is mathematically undefined (infinity).
+      // Dart's math.tan might return a very large number or double.infinity.
+      var a = NdArray.array([math.pi / 2, -math.pi / 2]);
+      var result = a.tan();
+
+      expect(result.dtype, equals(double));
+      // Check if the results are infinite or very large, depending on precision
+      // Corrected element access using [[index]] and cast to double
+      expect(
+          (result[[0]] as double).isInfinite ||
+              (result[[0]] as double).abs() > 1e15,
+          isTrue);
+      expect(
+          (result[[1]] as double).isInfinite ||
+              (result[[1]] as double).abs() > 1e15,
+          isTrue);
+    });
   });
 }

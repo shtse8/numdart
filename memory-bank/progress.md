@@ -1,4 +1,4 @@
-<!-- Version: 1.0 | Last Updated: 2025-04-05 | Updated By: Cline -->
+<!-- Version: 1.1 | Last Updated: 2025-04-05 | Updated By: Cline -->
 
 # Project Progress: NumDart
 
@@ -40,12 +40,13 @@
   - **✅ Implemented `NdArray.exp()`:** Element-wise exponential.
   - **✅ Implemented `NdArray.sin()`:** Element-wise sine.
   - **✅ Implemented `NdArray.cos()`:** Element-wise cosine.
+  - **✅ Implemented `NdArray.tan()`:** Element-wise tangent.
 
 ## Known Issues / TODOs
 
 1. **Add More Math Functions:**
-   - **TODO:** Implement common element-wise functions (e.g., `tan`, `log`).
-     (`sqrt`, `exp`, `sin`, `cos` done).
+   - **TODO:** Implement common element-wise functions (e.g., `log`). (`sqrt`,
+     `exp`, `sin`, `cos`, `tan` done).
    - **TODO:** Implement aggregation functions (e.g., `sum`, `mean`, `max`,
      `min`).
 2. **Refine Broadcasting:**

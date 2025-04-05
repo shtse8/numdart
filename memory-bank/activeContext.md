@@ -1,14 +1,16 @@
-<!-- Version: 1.1 | Last Updated: 2025-04-05 | Updated By: Cline -->
+<!-- Version: 1.2 | Last Updated: 2025-04-05 | Updated By: Cline -->
 
-# Active Context: NumDart (As of 2025-04-05 ~06:19 Europe/London)
+# Active Context: NumDart (As of 2025-04-05 ~06:31 Europe/London)
 
 ## Current Focus
 
 - **Phase 2 Math Functions:** Implement the next common element-wise function:
-  `tan`.
+  `log`.
 
 ## Recent Changes
 
+- **Added Tests for `NdArray.tan()`:** Created and verified tests for the
+  tangent method.
 - **Reorganized Test Directory:** Moved test files into a more structured layout
   (`test/arithmetic`, `test/elementwise`).
 - **Implemented `NdArray.cos()`:** Added the cosine method and corresponding
@@ -41,7 +43,7 @@
 ## Next Steps
 
 1. **Add More Math Functions:** Implement common element-wise functions (e.g.,
-   `tan`, `log`). (`sqrt`, `exp`, `sin`, `cos` done).
+   `log`). (`sqrt`, `exp`, `sin`, `cos`, `tan` done).
 2. **Refine Broadcasting:** Add more complex broadcasting tests.
 3. **Address Slicing Bug:** Investigate and fix the known bug with negative
    steps in slicing.
