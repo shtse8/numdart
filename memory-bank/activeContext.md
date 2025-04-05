@@ -1,12 +1,14 @@
-# Active Context: NumDart (As of 2025-04-05 ~04:09 Europe/London)
+# Active Context: NumDart (As of 2025-04-05 ~05:04 Europe/London)
 
 ## Current Focus
 
 - **Phase 2 Math Functions:** Implement the next common element-wise function:
-  `cos`.
+  `tan`.
 
 ## Recent Changes
 
+- **Implemented `NdArray.cos()`:** Added the cosine method and corresponding
+  tests.
 - **Implemented `NdArray.sin()`:** Added the sine method and corresponding
   tests.
 - **Implemented `NdArray.sqrt()`:** Added the square root method and
@@ -35,7 +37,7 @@
 ## Next Steps
 
 1. **Add More Math Functions:** Implement common element-wise functions (e.g.,
-   `cos`, `tan`, `log`). (`sqrt`, `exp`, `sin` done).
+   `tan`, `log`). (`sqrt`, `exp`, `sin`, `cos` done).
 2. **Refine Broadcasting:** Add more complex broadcasting tests.
 3. **Address Slicing Bug:** Investigate and fix the known bug with negative
    steps in slicing.

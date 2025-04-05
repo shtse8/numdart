@@ -37,12 +37,13 @@
   - **✅ Implemented `NdArray.sqrt()`:** Element-wise square root.
   - **✅ Implemented `NdArray.exp()`:** Element-wise exponential.
   - **✅ Implemented `NdArray.sin()`:** Element-wise sine.
+  - **✅ Implemented `NdArray.cos()`:** Element-wise cosine.
 
 ## Known Issues / TODOs
 
 1. **Add More Math Functions:**
-   - **TODO:** Implement common element-wise functions (e.g., `cos`, `tan`,
-     `log`). (`sqrt`, `exp`, `sin` done).
+   - **TODO:** Implement common element-wise functions (e.g., `tan`, `log`).
+     (`sqrt`, `exp`, `sin`, `cos` done).
    - **TODO:** Implement aggregation functions (e.g., `sum`, `mean`, `max`,
      `min`).
 2. **Refine Broadcasting:**
