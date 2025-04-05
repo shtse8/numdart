@@ -88,6 +88,8 @@ class NdArray {
   static NdArray linspace(num start, num stop,
           {int num = 50, bool endpoint = true, Type dtype = Float64List}) =>
       linspace(start, stop, num: num, endpoint: endpoint, dtype: dtype);
+  static NdArray scalar(num value, {Type? dtype}) =>
+      scalar(value, dtype: dtype);
 
   // --- Indexing and Slicing ---
   // Defined in ndarray_indexing.dart via operator methods
@@ -186,10 +188,10 @@ class NdArray {
         resolvedShape.length, offsetInBytes);
   }
 
-  /// Converts the NdArray to a nested [List].
+  /// Converts the NdArray to a nested [List] or a scalar value.
   ///
   /// The structure of the nested list mirrors the shape of the NdArray.
-  /// For a 0-dimensional array (scalar), it returns a list containing the single element.
+  /// For a 0-dimensional array (scalar), it returns the scalar value itself.
   /// For an empty array (size 0), it returns an empty list or nested empty lists
   /// matching the shape.
   ///
@@ -198,21 +200,32 @@ class NdArray {
   /// var a = NdArray.array([[1, 2], [3, 4]]);
   /// print(a.toList()); // Output: [[1, 2], [3, 4]]
   ///
-  /// var b = NdArray.array(5); // Scalar
-  /// print(b.toList()); // Output: [5]
+  /// var b = NdArray.scalar(5); // Scalar
+  /// print(b.toList()); // Output: 5
   ///
   /// var c = NdArray.zeros([2, 0]);
   /// print(c.toList()); // Output: [[], []]
   /// ```
-  List<dynamic> toList() {
+  dynamic toList() {
+    // Return type changed to dynamic
+    if (ndim == 0) {
+      // Handle scalar array: return the scalar value itself
+      if (size == 1) {
+        return getDataItem(data, offsetInBytes ~/ data.elementSizeInBytes);
+      } else {
+        // This case (ndim=0 but size!=1) should ideally not happen
+        // based on constructor logic, but handle defensively.
+        return null; // Or throw an error?
+      }
+    }
+
     if (size == 0) {
       // Handle empty arrays correctly based on dimensions
-      if (ndim == 0)
-        return []; // Should not happen for size 0? NumPy returns scalar item
       if (ndim == 1) return [];
       // For ndim > 1, create nested empty lists matching shape
       dynamic buildEmptyNested(int dim) {
         if (dim == ndim - 1) {
+          // The innermost dimension determines the content of the list
           return List.filled(shape[dim], null,
               growable: false); // Will be size 0 if shape[dim] is 0
         }
@@ -223,18 +236,13 @@ class NdArray {
         return nested;
       }
 
-      // Handle cases like shape [2, 0] -> [[], []]
+      // Handle cases like shape [2, 0] -> [[], []] or [0, 3] -> []
       if (shape.contains(0)) {
         return buildEmptyNested(0);
       } else {
-        return []; // Should not be reached if size is 0 and no dim is 0
+        // Should not be reached if size is 0 and no dim is 0, but return empty list just in case.
+        return [];
       }
-    }
-    if (ndim == 0) {
-      // Handle scalar array
-      return [
-        getDataItem(data, offsetInBytes ~/ data.elementSizeInBytes)
-      ]; // Use public version
     }
 
     dynamic buildNestedList(int dimension, List<int> currentIndices) {

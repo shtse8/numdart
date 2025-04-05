@@ -39,6 +39,12 @@ void main() {
     testThrowsArgumentErrorForIncompatibleBroadcastShapesDivision();
     testTypePromotionDivisionWithBroadcastingIntDoubleArray();
     testTypePromotionDivisionWithBroadcastingDoubleIntArray();
+    testBroadcastingDivision3DWith2D();
+    testBroadcastingDivisionMultipleOnes();
+    testBroadcastingDivisionWithSteppedView();
+    testBroadcastingDivisionArrayWithScalarArray();
+    testBroadcastingDivisionScalarArrayWithArray();
+    testBroadcastingDivisionViewWithScalarArray();
   });
 }
 
@@ -467,6 +473,171 @@ void testTypePromotionDivisionWithBroadcastingDoubleIntArray() {
     expect(result.data, isA<Float64List>());
     expect(
         const DeepCollectionEquality() // Corrected typo
+            .equals(result.toList(), expected.toList()),
+        isTrue);
+  });
+}
+
+// --- New Complex Broadcasting Tests ---
+
+void testBroadcastingDivision3DWith2D() {
+  test('Broadcasting Division: 3D[2, 2, 3] / 2D[2, 3]', () {
+    var a = NdArray.arange(12).reshape([2, 2, 3]);
+    // [[[ 0,  1,  2], [ 3,  4,  5]],
+    //  [[ 6,  7,  8], [ 9, 10, 11]]]
+    var b = NdArray.array([
+      [10, 20, 30],
+      [40, 50, 60]
+    ]); // Shape [2, 3]
+    var expected = NdArray.array([
+      [
+        [0.0, 1.0 / 20.0, 2.0 / 30.0], // a[0,0,:] / b[0,:]
+        [3.0 / 40.0, 4.0 / 50.0, 5.0 / 60.0] // a[0,1,:] / b[1,:]
+      ],
+      [
+        [6.0 / 10.0, 7.0 / 20.0, 8.0 / 30.0], // a[1,0,:] / b[0,:]
+        [9.0 / 40.0, 10.0 / 50.0, 11.0 / 60.0] // a[1,1,:] / b[1,:]
+      ]
+    ], dtype: Float64List);
+    var result = a / b;
+    expect(result.shape, equals([2, 2, 3]));
+    expect(result.dtype, equals(double));
+    expect(result.data, isA<Float64List>());
+    // Compare element-wise due to floating point
+    for (int i = 0; i < 2; i++) {
+      for (int j = 0; j < 2; j++) {
+        for (int k = 0; k < 3; k++) {
+          expect(result[[i, j, k]], closeTo(expected[[i, j, k]], 1e-9));
+        }
+      }
+    }
+  });
+}
+
+void testBroadcastingDivisionMultipleOnes() {
+  test('Broadcasting Division: Multiple Ones [4, 1, 3] / [1, 5, 1]', () {
+    var a = NdArray.arange(12).reshape([4, 1, 3]);
+    // [[ [0, 1, 2] ],
+    //  [ [3, 4, 5] ],
+    //  [ [6, 7, 8] ],
+    //  [ [9, 10, 11] ]]
+    var b = NdArray.arange(100, stop: 105).reshape([1, 5, 1]);
+    // [[ [100], [101], [102], [103], [104] ]]
+
+    // Expected shape is [4, 5, 3]
+    // result[i, j, k] = a[i, 0, k] / b[0, j, 0]
+    var expectedData = List.generate(4, (i) {
+      return List.generate(5, (j) {
+        return List.generate(3, (k) {
+          double aVal = a[[i, 0, k]].toDouble();
+          double bVal = b[[0, j, 0]].toDouble();
+          return aVal / bVal;
+        });
+      });
+    });
+    var expected = NdArray.array(expectedData, dtype: Float64List);
+
+    var result = a / b;
+    expect(result.shape, equals([4, 5, 3]));
+    expect(result.dtype, equals(double));
+    expect(result.data, isA<Float64List>());
+    // Compare element-wise
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 5; j++) {
+        for (int k = 0; k < 3; k++) {
+          expect(result[[i, j, k]], closeTo(expected[[i, j, k]], 1e-9));
+        }
+      }
+    }
+  });
+}
+
+void testBroadcastingDivisionWithSteppedView() {
+  test('Broadcasting Division: Array[2, 3] / SteppedView[3]', () {
+    var a = NdArray.array([
+      [10, 20, 30],
+      [40, 50, 60]
+    ]);
+    var base = NdArray.arange(0, stop: 10, step: 2); // [0, 2, 4, 6, 8]
+    var view = base[[Slice(1, 4)]]; // View [2, 4, 6]
+    var expected = NdArray.array([
+      [5.0, 5.0, 5.0],
+      [20.0, 12.5, 10.0]
+    ], dtype: Float64List);
+    var result = a / view;
+    expect(result.shape, equals([2, 3]));
+    expect(result.dtype, equals(double));
+    expect(result.data, isA<Float64List>());
+    expect(
+        const DeepCollectionEquality()
+            .equals(result.toList(), expected.toList()),
+        isTrue);
+    // Ensure base is unchanged
+    expect(base.toList(), equals([0, 2, 4, 6, 8]));
+  });
+}
+
+void testBroadcastingDivisionArrayWithScalarArray() {
+  test('Broadcasting Division: Array[m, n] / ScalarArray[()]', () {
+    var arr = NdArray.array([
+      [10, 20],
+      [30, 40]
+    ]);
+    var scalarArr = NdArray.scalar(10); // Use scalar constructor
+    var expected = NdArray.array([
+      [1.0, 2.0],
+      [3.0, 4.0]
+    ], dtype: Float64List);
+    var result = arr / scalarArr;
+    expect(result.shape, equals([2, 2]));
+    expect(result.dtype, equals(double));
+    expect(result.data, isA<Float64List>());
+    expect(
+        const DeepCollectionEquality()
+            .equals(result.toList(), expected.toList()),
+        isTrue);
+  });
+}
+
+void testBroadcastingDivisionScalarArrayWithArray() {
+  test('Broadcasting Division: ScalarArray[()] / Array[m, n]', () {
+    var scalarArr = NdArray.scalar(100); // Use scalar constructor
+    var arr = NdArray.array([
+      [1.0, 2.0],
+      [4.0, 5.0]
+    ]);
+    var expected = NdArray.array([
+      [100.0, 50.0],
+      [25.0, 20.0]
+    ], dtype: Float64List);
+    var result = scalarArr / arr;
+    expect(result.shape, equals([2, 2]));
+    expect(result.dtype, equals(double));
+    expect(result.data, isA<Float64List>());
+    expect(
+        const DeepCollectionEquality()
+            .equals(result.toList(), expected.toList()),
+        isTrue);
+  });
+}
+
+void testBroadcastingDivisionViewWithScalarArray() {
+  test('Broadcasting Division: View[m, n] / ScalarArray[()]', () {
+    var base = NdArray.arange(10, stop: 16)
+        .reshape([2, 3]); // [[10, 11, 12], [13, 14, 15]]
+    var view =
+        base[[Slice(null, null), Slice(0, 2)]]; // View [[10, 11], [13, 14]]
+    var scalarArr = NdArray.scalar(2); // Use scalar constructor
+    var expected = NdArray.array([
+      [5.0, 5.5],
+      [6.5, 7.0]
+    ], dtype: Float64List);
+    var result = view / scalarArr;
+    expect(result.shape, equals([2, 2]));
+    expect(result.dtype, equals(double));
+    expect(result.data, isA<Float64List>());
+    expect(
+        const DeepCollectionEquality()
             .equals(result.toList(), expected.toList()),
         isTrue);
   });

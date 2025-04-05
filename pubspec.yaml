@@ -1,13 +1,14 @@
 name: numdart
 description: A NumPy-like package for Dart, focusing on performance and API compatibility.
-version: 0.0.1
-# repository: https://github.com/your_org/numdart # TODO: Add repository URL
+version: 0.1.0 # Updated after completing Phase 2 features
+repository: https://github.com/shtse8/numdart.git # Added repository URL
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   meta: ^1.11.0 # For annotations like @internal
+  collection: ^1.18.0 # Added for ListEquality
 
 dev_dependencies:
   lints: ^3.0.0

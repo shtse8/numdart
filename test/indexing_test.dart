@@ -216,6 +216,28 @@ void main() {
       expect(s3.shape, equals([3, 0]));
       expect(s3.size, equals(0));
     });
+
+    test('2D slicing - negative steps (reverse rows and cols)', () {
+      var a = NdArray.arange(6).reshape([2, 3]); // [[0, 1, 2], [3, 4, 5]]
+      var s = a[[
+        Slice(null, null, -1),
+        Slice(null, null, -1)
+      ]]; // Reverse both dims
+      expect(s.shape, equals([2, 3]));
+      expect(s.ndim, equals(2));
+      expect(s[[0, 0]], equals(5)); // Bottom-right of original
+      expect(s[[0, 1]], equals(4));
+      expect(s[[0, 2]], equals(3));
+      expect(s[[1, 0]], equals(2)); // Top-right of original
+      expect(s[[1, 1]], equals(1));
+      expect(s[[1, 2]], equals(0)); // Top-left of original
+      expect(identical(s.data, a.data), isTrue);
+      // Offset should point to the last element (index 5)
+      expect(s.offsetInBytes,
+          equals(a.offsetInBytes + 5 * a.data.elementSizeInBytes));
+      // Strides should both be negative
+      expect(s.strides, equals([a.strides[0] * -1, a.strides[1] * -1]));
+    });
   }); // End of Slicing group
 
   group('NdArray Basic Assignment (operator []=)', () {

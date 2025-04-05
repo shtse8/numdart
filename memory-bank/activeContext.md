@@ -1,14 +1,33 @@
-<!-- Version: 1.5 | Last Updated: 2025-04-05 | Updated By: Cline -->
+<!-- Version: 1.9 | Last Updated: 2025-04-05 | Updated By: Cline -->
 
-# Active Context: NumDart (As of 2025-04-05 ~07:13 Europe/London)
+# Active Context: NumDart (As of 2025-04-05 ~07:22 Europe/London)
 
 ## Current Focus
 
-- **Phase 2 Broadcasting:** Refine broadcasting implementation and add more
-  complex tests.
+- **Phase 3 Planning:** Begin planning for Flutter integration, documentation,
+  and performance profiling.
 
 ## Recent Changes
 
+- **Deferred `broadcast_to`:** Decided to defer implementation of an explicit
+  `broadcast_to` function to a future stage, as implicit broadcasting covers
+  current needs.
+- **Improved Scalar Handling:**
+  - Added `NdArray.scalar()` factory constructor for creating 0-D arrays.
+  - Modified `NdArray.toList()` to return the scalar value directly for 0-D
+    arrays (aligning with NumPy).
+  - Updated tests (`creation_test.dart`, `arithmetic/*_test.dart`,
+    `aggregation_test.dart`) to use `NdArray.scalar()` and verify new `toList()`
+    behavior.
+- **Investigated Slicing Bug:** Reviewed negative step slicing implementation
+  (`Slice.adjust`, `NdArray.operator[]`, `elements` getter) and tests
+  (`indexing_test.dart`). Added a 2D negative slicing test. No active bug found;
+  existing logic appears correct. The previously noted bug might have been fixed
+  during refactoring.
+- **Added Complex Broadcasting Tests (Arithmetic):** Added tests for 3D+2D,
+  multiple ones, stepped view, and scalar array broadcasting scenarios for
+  `operator+`, `operator-`, `operator*`, and `operator/`. Fixed a minor issue in
+  one test's expected value calculation.
 - **Implemented Aggregation Functions:** Added `sum()`, `mean()`, `max()`,
   `min()` methods via an extension (`NdArrayAggregation`) in a new file
   `lib/src/ndarray_aggregation.dart`.
@@ -64,11 +83,8 @@
 
 ## Next Steps
 
-1. **Refine Broadcasting:** Add more complex broadcasting tests.
-2. **Address Slicing Bug:** Investigate and fix the known bug with negative
-   steps in slicing.
-3. **Scalar Handling:** Review and ensure consistent handling for 0-D (scalar)
-   arrays.
+1. **Phase 3:** Begin Flutter integration, documentation, and performance
+   profiling.
 
 ## Open Questions / Considerations
 
@@ -76,6 +92,6 @@
   `TypedData` sizes like `Int32List` vs `Int64List` if introduced later). For
   now, assume `int` maps to `Int64List` and `double` maps to `Float64List`.
 - Need robust testing for edge cases in broadcasting, especially with views and
-  different strides. (Still relevant)
-- Persistent analyzer errors related to deleted test files might require manual
-  cache clearing or IDE restart by the user.
+  different strides. (Partially addressed by recent tests)
+- Persistent analyzer errors related to deleted test files and extension methods
+  might require manual cache clearing or IDE restart by the user.

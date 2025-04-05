@@ -186,3 +186,31 @@ NdArray linspace(
   final int ndim = 1;
   return NdArray._(data, shape, strides, getDType(data), num, ndim, 0);
 }
+
+/// Creates a 0-dimensional (scalar) array containing a single value.
+///
+/// Example:
+/// ```dart
+/// var a = NdArray.scalar(10);
+/// print(a.shape); // Output: []
+/// print(a.ndim);  // Output: 0
+/// print(a.size);  // Output: 1
+/// print(a[[]]);   // Output: 10
+///
+/// var b = NdArray.scalar(3.14, dtype: Float32List);
+/// print(b.dtype); // Output: double
+/// ```
+NdArray scalar(num value, {Type? dtype}) {
+  final Type targetType = dtype ?? (value is int ? Int64List : Float64List);
+  final TypedData data = createTypedData(targetType, 1);
+  setDataItem(data, 0, value);
+
+  final List<int> shape = []; // Empty shape for scalar
+  final int size = 1;
+  final int ndim = 0;
+  final int elementSize = getElementSizeInBytes(data);
+  final List<int> strides = []; // Empty strides for scalar
+
+  // Pass the primitive dtype to the constructor
+  return NdArray._(data, shape, strides, getDType(data), size, ndim, 0);
+}

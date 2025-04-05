@@ -57,16 +57,16 @@ void main() {
     });
 
     test('Scalar (0D) Array Sum', () {
-      var a = NdArray.array([5]); // Wrap scalar in a list for array creation
+      var a = NdArray.scalar(5); // Use scalar constructor
       expect(a.sum(), equals(5));
       expect(a.sum().runtimeType, equals(int));
 
-      var b = NdArray.array([3.14]); // Wrap scalar in a list for array creation
+      var b = NdArray.scalar(3.14); // Use scalar constructor
       expect(b.sum(), closeTo(3.14, 1e-9));
       expect(b.sum().runtimeType, equals(double));
     });
 
-    // TODO: Add tests for mean, max, min
+    // Aggregation tests for sum
 
     group('NdArray Aggregation Tests - mean()', () {
       test('1D Integer Array Mean', () {
@@ -114,14 +114,14 @@ void main() {
       });
 
       test('Scalar (0D) Array Mean', () {
-        var a = NdArray.array([5]);
+        var a = NdArray.scalar(5); // Use scalar constructor
         expect(a.mean(), closeTo(5.0, 1e-9));
 
-        var b = NdArray.array([3.14]);
+        var b = NdArray.scalar(3.14); // Use scalar constructor
         expect(b.mean(), closeTo(3.14, 1e-9));
       });
 
-      // TODO: Add tests for max, min
+      // Aggregation tests for mean
 
       group('NdArray Aggregation Tests - max()', () {
         test('1D Integer Array Max', () {
@@ -169,14 +169,14 @@ void main() {
         });
 
         test('Scalar (0D) Array Max', () {
-          var a = NdArray.array([5]);
+          var a = NdArray.scalar(5); // Use scalar constructor
           expect(a.max(), equals(5));
 
-          var b = NdArray.array([3.14]);
+          var b = NdArray.scalar(3.14); // Use scalar constructor
           expect(b.max(), closeTo(3.14, 1e-9));
         });
 
-        // TODO: Add tests for min
+        // Aggregation tests for max
 
         group('NdArray Aggregation Tests - min()', () {
           test('1D Integer Array Min', () {
@@ -225,10 +225,10 @@ void main() {
           });
 
           test('Scalar (0D) Array Min', () {
-            var a = NdArray.array([5]);
+            var a = NdArray.scalar(5); // Use scalar constructor
             expect(a.min(), equals(5));
 
-            var b = NdArray.array([3.14]);
+            var b = NdArray.scalar(3.14); // Use scalar constructor
             expect(b.min(), closeTo(3.14, 1e-9));
           });
         });

@@ -467,4 +467,41 @@ void main() {
       expect((nd.data as Float64List)[4], closeTo(0.0, 1e-9));
     });
   }); // End of linspace group
+  group('scalar creation tests', () {
+    test('scalar with int value', () {
+      var nd = NdArray.scalar(42);
+      expect(nd.shape, equals([]));
+      expect(nd.ndim, equals(0));
+      expect(nd.size, equals(1));
+      expect(nd.dtype, equals(int));
+      expect(nd.data, isA<Int64List>());
+      expect(nd[[]], equals(42)); // Access scalar value via indexing
+      expect(nd.toList(), equals(42)); // Check toList returns scalar
+      expect(nd[[]], equals(42)); // Check indexing
+    });
+
+    test('scalar with double value', () {
+      var nd = NdArray.scalar(3.14);
+      expect(nd.shape, equals([]));
+      expect(nd.ndim, equals(0));
+      expect(nd.size, equals(1));
+      expect(nd.dtype, equals(double));
+      expect(nd.data, isA<Float64List>());
+      expect(nd[[]], closeTo(3.14, 1e-9)); // Access scalar value via indexing
+      expect(nd.toList(), closeTo(3.14, 1e-9)); // Check toList returns scalar
+      expect(nd[[]], closeTo(3.14, 1e-9)); // Check indexing
+    });
+
+    test('scalar with explicit dtype', () {
+      var nd = NdArray.scalar(100, dtype: Float32List);
+      expect(nd.shape, equals([]));
+      expect(nd.ndim, equals(0));
+      expect(nd.size, equals(1));
+      expect(nd.dtype, equals(double));
+      expect(nd.data, isA<Float32List>());
+      expect(nd[[]], equals(100.0)); // Access scalar value via indexing
+      expect(nd.toList(), equals(100.0)); // Check toList returns scalar
+      expect(nd[[]], equals(100.0)); // Check indexing
+    });
+  }); // End of scalar group
 } // End of main

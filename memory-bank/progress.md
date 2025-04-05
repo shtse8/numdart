@@ -1,4 +1,4 @@
-<!-- Version: 1.4 | Last Updated: 2025-04-05 | Updated By: Cline -->
+<!-- Version: 1.8 | Last Updated: 2025-04-05 | Updated By: Cline -->
 
 # Project Progress: NumDart
 
@@ -8,15 +8,16 @@
   - Core `NdArray` class structure defined (`data`, `shape`, `strides`, `dtype`,
     `size`, `ndim`, `offsetInBytes`). `dtype` now stores primitive type
     (`int`/`double`).
-  - Basic creation functions implemented and tested.
+  - Basic creation functions implemented and tested (`array`, `zeros`, `ones`,
+    `arange`, `linspace`, `scalar`).
   - Basic integer indexing (`operator []`) implemented and tested.
   - Basic slicing (`operator []` returning view) implemented and tested.
   - Reshaping (`reshape()` returning view) implemented and tested.
   - Scalar slice assignment (`operator []=`) implemented and tested.
-  - Helper method `toList()` implemented and tested.
+  - Helper method `toList()` implemented and tested (returns scalar for 0-D).
   - **✅ Added `elements` Getter:** Provides public iteration over elements.
 
-- **Phase 2 (Math & Broadcasting):** ⏳ In Progress.
+- **Phase 2 (Math & Broadcasting):** ✅ Complete.
   - Element-wise addition (`operator+`) with broadcasting implemented and
     tested.
   - Scalar addition (`NdArray + num`) implemented and tested.
@@ -47,19 +48,17 @@
     `min()` implemented and tested.
   - **✅ Refactored Tests:** Updated all creation and math operation tests to
     use static `NdArray` methods and removed obsolete `part` files.
+  - **✅ Refined Broadcasting Tests (Arithmetic Ops):** Added more complex test
+    cases for `+`, `-`, `*`, `/`.
+  - **✅ Investigated Slicing Bug:** No active bug found with negative steps.
+  - **✅ Improved Scalar Handling:** Added `NdArray.scalar()` constructor and
+    updated `toList()` behavior for 0-D arrays.
 
 ## Known Issues / TODOs
 
-1. **Refine Broadcasting:**
-   - **TODO:** Add more complex broadcasting tests (views, varied dimensions).
-   - **TODO:** Consider if explicit `broadcast_to` function is needed.
-2. **Scalar Handling:**
-   - **TODO:** Review and ensure consistent handling for 0-D (scalar) arrays
-     across all functions (especially `toList()`). Consider adding
-     `NdArray.scalar()` constructor or improving `NdArray.array()` for scalars.
-3. **Slicing Bug:**
-   - **TODO:** Address known bug with negative steps in slicing.
-4. **FFI Investigation:** Keep in mind for Phase 3 if performance becomes a
+1. **FFI Investigation:** Keep in mind for Phase 3 if performance becomes a
    bottleneck.
-5. **Analyzer Issues:** Persistent errors related to deleted test files might
-   require manual intervention (cache clear/IDE restart).
+2. **Analyzer Issues:** Persistent errors related to deleted test files and
+   extension methods might require manual intervention (cache clear/IDE
+   restart).
+3. **Future:** Consider adding explicit `broadcast_to` function.
