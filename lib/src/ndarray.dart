@@ -1,254 +1,17 @@
+library ndarray; // Define a library name
+
 import 'dart:typed_data';
-import 'dart:math' as math; // For max, sqrt functions
+import 'dart:math' as math; // For max, sqrt, trig functions etc.
 import 'package:meta/meta.dart';
 import 'package:collection/collection.dart'; // Needed for ListEquality
 import 'slice.dart'; // Import Slice
 
-// --- Top-Level Helper Functions ---
-
-List<int> _calculateStrides(List<int> shape, int elementSizeInBytes) {
-  if (shape.isEmpty) return [];
-  final ndim = shape.length;
-  final strides = List<int>.filled(ndim, 0);
-  if (ndim == 1) {
-    strides[0] = elementSizeInBytes;
-    return strides;
-  }
-  strides[ndim - 1] = elementSizeInBytes;
-  for (int i = ndim - 2; i >= 0; i--) {
-    strides[i] = (shape[i + 1] == 0)
-        ? elementSizeInBytes
-        : strides[i + 1] * shape[i + 1];
-  }
-  return strides;
-}
-
-int _calculateSize(List<int> shape) {
-  if (shape.isEmpty) return 1; // Scalar size
-  if (shape.contains(0)) return 0;
-  return shape.reduce((value, element) => value * element);
-}
-
-/// Calculates the resulting shape after broadcasting two shapes.
-/// Throws ArgumentError if the shapes are not broadcastable.
-List<int> _calculateBroadcastShape(List<int> shapeA, List<int> shapeB) {
-  final int ndimA = shapeA.length;
-  final int ndimB = shapeB.length;
-  final int ndimMax = math.max(ndimA, ndimB);
-  final List<int> resultShape = List<int>.filled(ndimMax, 0);
-
-  for (int i = 0; i < ndimMax; i++) {
-    // Get dimensions, padding with 1 if necessary
-    final int dimA = (i < ndimA) ? shapeA[ndimA - 1 - i] : 1;
-    final int dimB = (i < ndimB) ? shapeB[ndimB - 1 - i] : 1;
-
-    if (dimA == dimB) {
-      resultShape[ndimMax - 1 - i] = dimA;
-    } else if (dimA == 1) {
-      resultShape[ndimMax - 1 - i] = dimB;
-    } else if (dimB == 1) {
-      resultShape[ndimMax - 1 - i] = dimA;
-    } else {
-      throw ArgumentError(
-          'Operands could not be broadcast together with shapes $shapeA and $shapeB');
-    }
-  }
-  return resultShape;
-}
-
-/// Determines the resulting TypedData type for an operation between two TypedData types.
-/// Follows promotion rules: int + float -> float, int + int -> int (default Int64List).
-/// Division always results in Float64List.
-/// Determines the resulting primitive data type (int or double) for an operation.
-/// Division always results in double.
-/// Int + Float -> double. Int + Int -> int. Float + Float -> double.
-Type _getResultDataType(Type dtypeA, Type dtypeB, {bool isDivision = false}) {
-  if (isDivision) {
-    return double; // Division always results in double
-  }
-
-  // Check if types are primitive int/double
-  final bool isAPrimitiveFloat = (dtypeA == double);
-  final bool isBPrimitiveFloat = (dtypeB == double);
-
-  // Check if types are TypedData float types (fallback for safety, should ideally use primitive types)
-  final bool isATypedDataFloat =
-      (dtypeA == Float32List || dtypeA == Float64List);
-  final bool isBTypedDataFloat =
-      (dtypeB == Float32List || dtypeB == Float64List);
-
-  if (isAPrimitiveFloat ||
-      isBPrimitiveFloat ||
-      isATypedDataFloat ||
-      isBTypedDataFloat) {
-    // If either operand is float (primitive or TypedData), the result is double
-    return double;
-  } else {
-    // Both operands are int types (primitive or TypedData), result is int
-    return int;
-  }
-}
-
-Type _getDType(TypedData data) {
-  if (data is Int8List) return int;
-  if (data is Uint8List) return int;
-  if (data is Int16List) return int;
-  if (data is Uint16List) return int;
-  if (data is Int32List) return int;
-  if (data is Uint32List) return int;
-  if (data is Int64List) return int;
-  if (data is Uint64List) return int;
-  if (data is Float32List) return double;
-  if (data is Float64List) return double;
-  throw ArgumentError('Unsupported TypedData type: ${data.runtimeType}');
-}
-
-int _getElementSizeInBytes(TypedData data) {
-  return data.elementSizeInBytes;
-}
-
-List<int> _inferShape(List list) {
-  if (list.isEmpty) return [0];
-  final firstElement = list[0];
-  if (firstElement is List) {
-    final subShape = _inferShape(firstElement);
-    for (int i = 0; i < list.length; i++) {
-      if (list[i] is! List)
-        throw ArgumentError(
-            'Inconsistent structure: element at index $i is not a List.');
-      final currentSubShape = _inferShape(list[i] as List);
-      if (currentSubShape.length != subShape.length ||
-          !const ListEquality().equals(currentSubShape, subShape)) {
-        throw ArgumentError(
-            'Inconsistent shape: expected $subShape but got $currentSubShape at index $i.');
-      }
-    }
-    return [list.length, ...subShape];
-  } else {
-    for (int i = 0; i < list.length; i++) {
-      if (list[i] is List)
-        throw ArgumentError(
-            'Inconsistent structure: mix of lists and non-lists at index $i.');
-    }
-    return [list.length];
-  }
-}
-
-List<T> _flatten<T extends num>(List nestedList) {
-  final List<T> flatList = [];
-  for (final element in nestedList) {
-    if (element is List) {
-      flatList.addAll(_flatten<T>(element));
-    } else if (element is T) {
-      flatList.add(element);
-    } else if (element is num) {
-      try {
-        if (T == double)
-          flatList.add(element.toDouble() as T);
-        else if (T == int)
-          flatList.add(element.toInt() as T);
-        else
-          throw ArgumentError('Unsupported target numeric type $T');
-      } catch (e) {
-        throw ArgumentError(
-            'Failed to convert type ${element.runtimeType} to $T: $e');
-      }
-    } else {
-      throw ArgumentError('Non-numeric type ${element.runtimeType} found.');
-    }
-  }
-  return flatList;
-}
-
-Type? _inferDataType(List list) {
-  Type? inferredType;
-  bool hasDouble = false;
-  bool hasInt = false;
-  bool isEmpty = true;
-  void checkElement(dynamic element) {
-    if (element is List) {
-      if (!(element.isEmpty &&
-          list.length > 1 &&
-          list[0] is List &&
-          (list[0] as List).isEmpty)) {
-        isEmpty = false;
-        for (var subElement in element) checkElement(subElement);
-      }
-    } else if (element is double) {
-      hasDouble = true;
-      inferredType ??= Float64List;
-      isEmpty = false;
-    } else if (element is int) {
-      hasInt = true;
-      inferredType ??= Int64List;
-      isEmpty = false;
-    } else {
-      isEmpty = false;
-      throw ArgumentError('Non-numeric type ${element.runtimeType} found.');
-    }
-  }
-
-  if (list.isEmpty) return null;
-  checkElement(list);
-  if (isEmpty && list.isNotEmpty && list[0] is List) return null;
-  if (hasDouble && hasInt) return Float64List;
-  return inferredType;
-}
-
-TypedData _createTypedData(Type type, int length) {
-  if (identical(type, Int8List)) return Int8List(length);
-  if (identical(type, Uint8List)) return Uint8List(length);
-  if (identical(type, Int16List)) return Int16List(length);
-  if (identical(type, Uint16List)) return Uint16List(length);
-  if (identical(type, Int32List)) return Int32List(length);
-  if (identical(type, Uint32List)) return Uint32List(length);
-  if (identical(type, Int64List)) return Int64List(length);
-  if (identical(type, Uint64List)) return Uint64List(length);
-  if (identical(type, Float32List)) return Float32List(length);
-  if (identical(type, Float64List)) return Float64List(length);
-  throw ArgumentError("Unsupported dtype for TypedData creation: $type");
-}
-
-void _setDataItem(TypedData data, int index, num value) {
-  if (data is Int8List)
-    data[index] = value.toInt();
-  else if (data is Uint8List)
-    data[index] = value.toInt();
-  else if (data is Int16List)
-    data[index] = value.toInt();
-  else if (data is Uint16List)
-    data[index] = value.toInt();
-  else if (data is Int32List)
-    data[index] = value.toInt();
-  else if (data is Uint32List)
-    data[index] = value.toInt();
-  else if (data is Int64List)
-    data[index] = value.toInt();
-  else if (data is Uint64List)
-    data[index] = value.toInt();
-  else if (data is Float32List)
-    data[index] = value.toDouble();
-  else if (data is Float64List)
-    data[index] = value.toDouble();
-  else
-    throw ArgumentError(
-        "Unsupported TypedData type for setting item: ${data.runtimeType}");
-}
-
-dynamic _getDataItem(TypedData data, int index) {
-  if (data is Int8List) return data[index];
-  if (data is Uint8List) return data[index];
-  if (data is Int16List) return data[index];
-  if (data is Uint16List) return data[index];
-  if (data is Int32List) return data[index];
-  if (data is Uint32List) return data[index];
-  if (data is Int64List) return data[index];
-  if (data is Uint64List) return data[index];
-  if (data is Float32List) return data[index];
-  if (data is Float64List) return data[index];
-  throw ArgumentError(
-      "Unsupported TypedData type for getting item: ${data.runtimeType}");
-}
+part 'ndarray_helpers.dart';
+part 'ndarray_creation.dart';
+part 'ndarray_indexing.dart';
+part 'ndarray_math_ops.dart';
+part 'ndarray_math_funcs.dart';
+part 'ndarray_manipulation.dart';
 
 /// Represents a multi-dimensional, fixed-size array of items of the same type.
 class NdArray {
@@ -267,414 +30,55 @@ class NdArray {
       this.ndim, this.offsetInBytes);
 
   /// Internal factory method to create a view.
+  /// This might be refactored or removed if public factories cover all needs.
   @internal
   static NdArray internalCreateView(TypedData data, List<int> shape,
       List<int> strides, Type dtype, int size, int ndim, int offsetInBytes) {
     return NdArray._(data, shape, strides, dtype, size, ndim, offsetInBytes);
   }
 
-  // --- Factory Constructors ---
-
-  factory NdArray.array(List list, {Type? dtype}) {
-    final List<int> shape = _inferShape(list);
-    if (shape.length == 1 && shape[0] == 0) {
-      final targetType = dtype ?? Float64List;
-      final data = _createTypedData(targetType, 0);
-      final elementSize = _getElementSizeInBytes(data);
-      final strides = _calculateStrides(shape, elementSize);
-      // Pass the primitive dtype to the constructor
-      return NdArray._(data, shape, strides, _getDType(data), 0, 1, 0);
-    }
-    if (shape.length > 1 && shape.contains(0)) {
-      final targetType = dtype ?? Float64List;
-      final data = _createTypedData(targetType, 0);
-      final elementSize = _getElementSizeInBytes(data);
-      final strides = _calculateStrides(shape, elementSize);
-      // Pass the primitive dtype to the constructor
-      final size = _calculateSize(shape);
-      return NdArray._(
-          data, shape, strides, _getDType(data), size, shape.length, 0);
-    }
-    Type targetType = dtype ?? _inferDataType(list) ?? Float64List;
-    List<num> flatList = _flatten<num>(list);
-    final int size = _calculateSize(shape);
-    if (size != flatList.length) {
-      throw StateError(
-          'Shape size $size != flattened list length ${flatList.length}.');
-    }
-    TypedData data;
-    try {
-      data = _createTypedData(targetType, size);
-      for (int i = 0; i < size; i++) _setDataItem(data, i, flatList[i]);
-    } catch (e) {
-      throw ArgumentError('Failed to create TypedData: $e');
-    }
-    final int elementSize = _getElementSizeInBytes(data);
-    final List<int> strides = _calculateStrides(shape, elementSize);
-    // Pass the primitive dtype to the constructor
-    final int ndim = shape.length;
-    return NdArray._(data, shape, strides, _getDType(data), size, ndim, 0);
-  }
-
-  factory NdArray.zeros(List<int> shape, {Type dtype = Float64List}) {
-    if (shape.any((dim) => dim < 0))
-      throw ArgumentError('Negative dimensions not allowed.');
-    final int size = _calculateSize(shape);
-    TypedData data;
-    try {
-      data = _createTypedData(dtype, size);
-    } catch (e) {
-      throw ArgumentError('Failed to create TypedData: $e');
-    }
-    final int elementSize = _getElementSizeInBytes(data);
-    final List<int> strides = _calculateStrides(shape, elementSize);
-    // Pass the primitive dtype to the constructor
-    final int ndim = shape.length;
-    return NdArray._(data, shape, strides, _getDType(data), size, ndim, 0);
-  }
-
-  factory NdArray.ones(List<int> shape, {Type dtype = Float64List}) {
-    if (shape.any((dim) => dim < 0))
-      throw ArgumentError('Negative dimensions not allowed.');
-    final int size = _calculateSize(shape);
-    TypedData data;
-    try {
-      data = _createTypedData(dtype, size);
-      num oneValue = (dtype == Float32List || dtype == Float64List) ? 1.0 : 1;
-      for (int i = 0; i < size; i++) _setDataItem(data, i, oneValue);
-    } catch (e) {
-      throw ArgumentError('Failed to create TypedData: $e');
-    }
-    final int elementSize = _getElementSizeInBytes(data);
-    final List<int> strides = _calculateStrides(shape, elementSize);
-    // Pass the primitive dtype to the constructor
-    final int ndim = shape.length;
-    return NdArray._(data, shape, strides, _getDType(data), size, ndim, 0);
-  }
-
-  factory NdArray.arange(num startOrStop,
-      {num? stop, num step = 1, Type? dtype}) {
-    num actualStart;
-    num actualStop;
-    if (stop == null) {
-      actualStart = 0;
-      actualStop = startOrStop;
-    } else {
-      actualStart = startOrStop;
-      actualStop = stop;
-    }
-    if (step == 0) throw ArgumentError('step cannot be zero');
-    final bool isInputInt =
-        actualStart is int && actualStop is int && step is int;
-    final Type targetType = dtype ?? (isInputInt ? Int64List : Float64List);
-    int size = 0;
-    if (step > 0 && actualStop > actualStart)
-      size = math.max(
-          0,
-          ((actualStop.toDouble() - actualStart.toDouble()) / step.toDouble())
-              .ceil());
-    else if (step < 0 && actualStop < actualStart)
-      size = math.max(
-          0,
-          ((actualStop.toDouble() - actualStart.toDouble()) / step.toDouble())
-              .ceil());
-    if (size <= 0) {
-      final emptyData = _createTypedData(targetType, 0);
-      final shape = [0];
-      final elementSize = _getElementSizeInBytes(emptyData);
-      final strides = _calculateStrides(shape, elementSize);
-      // Pass the primitive dtype to the constructor
-      return NdArray._(
-          emptyData, shape, strides, _getDType(emptyData), 0, 1, 0);
-    }
-    TypedData data;
-    try {
-      data = _createTypedData(targetType, size);
-      num currentValue = actualStart;
-      for (int i = 0; i < size; i++) {
-        _setDataItem(data, i, currentValue);
-        currentValue = currentValue.toDouble() + step.toDouble();
-      }
-    } catch (e) {
-      throw ArgumentError('Failed to create TypedData: $e');
-    }
-    final shape = [size];
-    final int elementSize = _getElementSizeInBytes(data);
-    final List<int> strides = _calculateStrides(shape, elementSize);
-    // Pass the primitive dtype to the constructor
-    final int ndim = 1;
-    return NdArray._(data, shape, strides, _getDType(data), size, ndim, 0);
-  }
-
-  factory NdArray.linspace(
-    num start,
-    num stop, {
-    int num = 50,
-    bool endpoint = true,
-    Type dtype = Float64List,
-  }) {
-    if (num < 0) {
-      throw ArgumentError('Number of samples, num, cannot be negative.');
-    }
-    if (num == 0) {
-      final emptyData = _createTypedData(dtype, 0);
-      final shape = [0];
-      final elementSize = _getElementSizeInBytes(emptyData);
-      final strides = _calculateStrides(shape, elementSize);
-      // Pass the primitive dtype to the constructor
-      return NdArray._(
-          emptyData, shape, strides, _getDType(emptyData), 0, 1, 0);
-    }
-    if (num == 1) {
-      final data = _createTypedData(dtype, 1);
-      _setDataItem(data, 0, start);
-      final shape = [1];
-      final elementSize = _getElementSizeInBytes(data);
-      final strides = _calculateStrides(shape, elementSize);
-      // Pass the primitive dtype to the constructor
-      return NdArray._(data, shape, strides, _getDType(data), 1, 1, 0);
-    }
-
-    double step;
-    int div = endpoint ? (num - 1) : num;
-    if (div == 0) div = 1;
-    step = (stop.toDouble() - start.toDouble()) / div;
-
-    TypedData data;
-    try {
-      data = _createTypedData(dtype, num);
-      for (int i = 0; i < num; i++) {
-        double value = start.toDouble() + i * step;
-        if (endpoint && i == num - 1) {
-          value = stop.toDouble();
-        }
-        _setDataItem(data, i, value);
-      }
-    } catch (e) {
-      throw ArgumentError(
-          'Failed to create TypedData for linspace with dtype $dtype: $e');
-    }
-
-    final shape = [num];
-    final int elementSize = _getElementSizeInBytes(data);
-    final List<int> strides = _calculateStrides(shape, elementSize);
-    // Pass the primitive dtype to the constructor
-    final int ndim = 1;
-    return NdArray._(data, shape, strides, _getDType(data), num, ndim, 0);
-  }
-
   // --- Basic Properties ---
   int get dimensions => ndim;
 
+  // --- Factory Constructors ---
+  // Defined in ndarray_creation.dart via top-level functions like array(), zeros() etc.
+  // Example: static NdArray array(List list, {Type? dtype}) => array(list, dtype: dtype);
+  // We need static methods in the class to delegate to the part functions
+  static NdArray array(List list, {Type? dtype}) => array(list, dtype: dtype);
+  static NdArray zeros(List<int> shape, {Type dtype = Float64List}) =>
+      zeros(shape, dtype: dtype);
+  static NdArray ones(List<int> shape, {Type dtype = Float64List}) =>
+      ones(shape, dtype: dtype);
+  static NdArray arange(num startOrStop,
+          {num? stop, num step = 1, Type? dtype}) =>
+      arange(startOrStop, stop: stop, step: step, dtype: dtype);
+  static NdArray linspace(num start, num stop,
+          {int num = 50, bool endpoint = true, Type dtype = Float64List}) =>
+      linspace(start, stop, num: num, endpoint: endpoint, dtype: dtype);
+
   // --- Indexing and Slicing ---
-  dynamic operator [](List<Object> indices) {
-    if (indices.length != ndim)
-      throw RangeError('Expected $ndim indices/slices, got ${indices.length}.');
-    bool isSlicing = indices.any((item) => item is Slice);
-
-    if (!isSlicing) {
-      // Pure integer indexing
-      List<int> intIndices;
-      try {
-        intIndices = indices.cast<int>();
-      } catch (e) {
-        throw ArgumentError('Invalid index type: $indices.');
-      }
-      int byteOffsetWithinView = 0;
-      for (int i = 0; i < ndim; i++) {
-        int index = intIndices[i];
-        int dimSize = shape[i];
-        if (index < 0) index += dimSize;
-        if (index < 0 || index >= dimSize)
-          throw RangeError(
-              'Index $index out of bounds for dim $i size $dimSize');
-        byteOffsetWithinView += index * strides[i];
-      }
-      final int finalByteOffset = offsetInBytes + byteOffsetWithinView;
-      final int dataIndex = finalByteOffset ~/ data.elementSizeInBytes;
-      return _getDataItem(data, dataIndex);
-    } else {
-      // Slicing (create a view)
-      final List<int> newShape = [];
-      final List<int> newStrides = [];
-      int viewOffsetInBytes = offsetInBytes;
-      for (int i = 0; i < ndim; i++) {
-        final indexOrSlice = indices[i];
-        final currentDimSize = shape[i];
-        final currentStride = strides[i];
-        if (indexOrSlice is int) {
-          int index = indexOrSlice;
-          if (index < 0) index += currentDimSize;
-          if (index < 0 || index >= currentDimSize)
-            throw RangeError(
-                'Index $index out of bounds for dim $i size $currentDimSize');
-          viewOffsetInBytes += index * currentStride;
-        } else if (indexOrSlice is Slice) {
-          final slice = indexOrSlice;
-          final (start, _, step, length) = slice.adjust(currentDimSize);
-          newShape.add(length);
-          newStrides.add(currentStride * step);
-          viewOffsetInBytes += start * currentStride;
-        } else {
-          throw ArgumentError(
-              'Invalid type in index list: ${indexOrSlice.runtimeType}.');
-        }
-      }
-      final int newSize =
-          newShape.isEmpty ? 1 : newShape.reduce((a, b) => a * b);
-      final int newNdim = newShape.length;
-      return NdArray._(data, newShape, newStrides, dtype, newSize, newNdim,
-          viewOffsetInBytes);
-    }
-  }
-
-  void operator []=(List<Object> indices, dynamic value) {
-    if (indices.length != ndim) {
-      throw RangeError(
-          'Incorrect number of indices provided. Expected $ndim, got ${indices.length}.');
-    }
-    bool isSlicing = indices.any((item) => item is Slice);
-
-    if (!isSlicing) {
-      // --- Integer Index Assignment ---
-      List<int> intIndices;
-      try {
-        intIndices = indices.cast<int>();
-      } catch (e) {
-        throw ArgumentError(
-            'Invalid index type for integer assignment: expected List<int>, got $indices.');
-      }
-
-      if (value is! num) {
-        throw ArgumentError(
-            'Value for single element assignment must be a number (int or double), got ${value.runtimeType}');
-      }
-
-      int byteOffsetWithinView = 0;
-      for (int i = 0; i < ndim; i++) {
-        int index = intIndices[i];
-        int dimSize = shape[i];
-        if (index < 0) index += dimSize;
-        if (index < 0 || index >= dimSize) {
-          throw RangeError(
-              'Index $index is out of bounds for dim $i size $dimSize');
-        }
-        byteOffsetWithinView += index * strides[i];
-      }
-
-      final int finalByteOffset = offsetInBytes + byteOffsetWithinView;
-      final int dataIndex = finalByteOffset ~/ data.elementSizeInBytes;
-
-      try {
-        _setDataItem(data, dataIndex, value);
-      } catch (e) {
-        throw ArgumentError('Failed to set value: $e');
-      }
-    } else {
-      // --- Slice Assignment ---
-      NdArray targetView;
-      try {
-        targetView = this[indices]; // Get the view representing the slice
-      } catch (e) {
-        throw ArgumentError('Invalid slice or index for assignment target: $e');
-      }
-
-      if (value is NdArray) {
-        // --- Assigning an NdArray to a Slice ---
-        final NdArray sourceArray = value;
-
-        // 1. Check dtype compatibility (TODO: Implement type promotion/casting later)
-        if (targetView.dtype != sourceArray.dtype) {
-          throw ArgumentError(
-              'Cannot assign NdArray with dtype ${sourceArray.dtype} to slice with dtype ${targetView.dtype}. Type promotion not yet implemented.');
-        }
-
-        // 2. Check broadcast compatibility
-        final List<int> broadcastShape;
-        try {
-          // The source array must be broadcastable *to* the target view's shape
-          broadcastShape =
-              _calculateBroadcastShape(targetView.shape, sourceArray.shape);
-          // Ensure the broadcast result matches the target view's shape exactly
-          if (!const ListEquality().equals(broadcastShape, targetView.shape)) {
-            throw ArgumentError(
-                'Shape mismatch: Source array shape ${sourceArray.shape} cannot be broadcast to target slice shape ${targetView.shape}');
-          }
-        } catch (e) {
-          throw ArgumentError(
-              'Source array shape ${sourceArray.shape} cannot be broadcast to target slice shape ${targetView.shape}: $e');
-        }
-
-        // 3. Perform element-wise assignment with broadcasting
-        if (targetView.size == 0)
-          return; // Nothing to assign if target is empty
-
-        final int targetNdim = targetView.ndim;
-        final List<int> currentIndices = List<int>.filled(targetNdim, 0);
-        final int targetElementSizeBytes = targetView.data
-            .elementSizeInBytes; // Should be same as this.data.elementSizeInBytes
-        final int sourceElementSizeBytes = sourceArray.data.elementSizeInBytes;
-
-        for (int i = 0; i < targetView.size; i++) {
-          // Calculate byte offset for the target view element
-          int targetByteOffset = targetView.offsetInBytes;
-          for (int d = 0; d < targetNdim; d++) {
-            targetByteOffset += currentIndices[d] * targetView.strides[d];
-          }
-          final int targetDataIndex =
-              targetByteOffset ~/ targetElementSizeBytes;
-
-          // Calculate corresponding byte offset for the source array element (with broadcasting)
-          int sourceByteOffset = sourceArray.offsetInBytes;
-          for (int d = 0; d < targetNdim; d++) {
-            final int idx = currentIndices[d];
-            final int sourceDimIdx =
-                d - (targetNdim - sourceArray.ndim); // Align dimensions
-            if (sourceDimIdx >= 0) {
-              final int sourceDimSize = sourceArray.shape[sourceDimIdx];
-              final int sourceStride = sourceArray.strides[sourceDimIdx];
-              // Use index 0 if the source dimension was broadcast
-              if (sourceDimSize == 1 && targetView.shape[d] > 1) {
-                // Use index 0 for broadcast dimension -> add 0 * stride
-              } else {
-                sourceByteOffset += idx * sourceStride;
-              }
-            }
-            // If sourceDimIdx < 0, this dimension doesn't exist in source, effectively broadcast
-          }
-          final int sourceDataIndex =
-              sourceByteOffset ~/ sourceElementSizeBytes;
-
-          // Get value from source and set it in the target view's data buffer
-          final dynamic sourceValue =
-              _getDataItem(sourceArray.data, sourceDataIndex);
-          try {
-            _setDataItem(targetView.data, targetDataIndex,
-                sourceValue); // Use targetView.data which is same as this.data
-          } catch (e) {
-            throw ArgumentError(
-                'Failed to set value during slice assignment: $e');
-          }
-
-          // Increment multi-dimensional index for the target view shape
-          for (int d = targetNdim - 1; d >= 0; d--) {
-            currentIndices[d]++;
-            if (currentIndices[d] < targetView.shape[d]) break;
-            currentIndices[d] = 0;
-          }
-        }
-      } else if (value is num) {
-        // --- Assigning a Scalar to a Slice ---
-        _assignScalarToView(targetView, value);
-      } else {
-        throw ArgumentError(
-            'Value for slice assignment must be a number or an NdArray, got ${value.runtimeType}');
-      }
-    }
-  }
-
-  // --- Manipulation ---
-
+  // Defined in ndarray_indexing.dart via operator methods
+  /// Accesses an element or creates a view based on the provided indices/slices.
+  ///
+  /// If all elements in [indices] are integers, it returns the single element
+  /// Returns a new view of the array with a different shape, without changing data.
+  ///
+  /// The new shape must be compatible with the original shape (i.e., the total
+  /// number of elements must remain the same).
+  /// One dimension can be specified as -1. In this case, the value is inferred
+  /// from the length of the array and the remaining dimensions.
+  ///
+  /// Example:
+  /// ```dart
+  /// var a = NdArray.arange(6);
+  /// var b = a.reshape([2, 3]);
+  /// print(b.shape); // Output: [2, 3]
+  ///
+  /// var c = a.reshape([3, -1]); // Infer last dimension
+  /// print(c.shape); // Output: [3, 2]
+  /// ```
+  ///
+  /// Throws [ArgumentError] if the new shape is incompatible or invalid.
   NdArray reshape(List<int> newShape) {
     List<int> resolvedShape = List.from(newShape);
     int unknownDimIndex = resolvedShape.indexOf(-1);
@@ -691,9 +95,9 @@ class NdArray {
           throw ArgumentError('Invalid dimension size in new shape: $dim');
         }
       }
-      if (size == 0 &&
-          productOfKnownDims == 1 &&
-          resolvedShape.length == 1 &&
+      if (size == 0 && // Corrected from &amp;&amp;
+          productOfKnownDims == 1 && // Corrected from &amp;&amp;
+          resolvedShape.length == 1 && // Corrected from &amp;&amp;
           resolvedShape[0] == -1) {
         resolvedShape[unknownDimIndex] = 0;
       } else if (productOfKnownDims == 0) {
@@ -702,12 +106,22 @@ class NdArray {
           resolvedShape.forEach((d) {
             if (d > 0) tempProduct *= d;
           });
-          if (size % tempProduct != 0) {
+          // Allow reshaping [0] to [0, x] or [x, 0] etc.
+          // Check if the known dimensions multiply to zero, which is only possible if at least one known dim is 0.
+          // If the original size is 0, this reshape is valid.
+          if (tempProduct == 0) {
+            resolvedShape[unknownDimIndex] =
+                0; // Or any value, as total size remains 0
+          } else if (size % tempProduct != 0) {
+            // Should not happen if tempProduct is 0
             throw ArgumentError(
                 'Cannot reshape array of size $size into shape $newShape (product is zero)');
+          } else {
+            resolvedShape[unknownDimIndex] =
+                0; // If size is 0 and product is non-zero (e.g. reshape([0], [-1, 5]))
           }
-          resolvedShape[unknownDimIndex] = 0;
         } else {
+          // size != 0
           throw ArgumentError(
               'Cannot reshape array of size $size into shape $newShape (product is zero)');
         }
@@ -719,7 +133,7 @@ class NdArray {
       }
     }
 
-    final int newSize = _calculateSize(resolvedShape);
+    final int newSize = calculateSize(resolvedShape); // Use public version
     if (newSize != size) {
       throw ArgumentError(
           'Cannot reshape array of size $size into shape $resolvedShape (calculated size $newSize)');
@@ -729,19 +143,65 @@ class NdArray {
           'Negative dimensions are not allowed in the final shape: $resolvedShape');
     }
 
-    final List<int> newStrides =
-        _calculateStrides(resolvedShape, data.elementSizeInBytes);
+    // TODO: Check for contiguity before allowing view-based reshape.
+    // If not contiguous, a copy might be needed. For now, assume view is possible.
+    final List<int> newStrides = calculateStrides(
+        resolvedShape, data.elementSizeInBytes); // Use public version
 
-    return NdArray.internalCreateView(data, resolvedShape, newStrides, dtype,
-        size, resolvedShape.length, offsetInBytes);
+    // Note: NdArray._ is the internal constructor
+    return NdArray._(data, resolvedShape, newStrides, dtype, size,
+        resolvedShape.length, offsetInBytes);
   }
 
+  /// Converts the NdArray to a nested [List].
+  ///
+  /// The structure of the nested list mirrors the shape of the NdArray.
+  /// For a 0-dimensional array (scalar), it returns a list containing the single element.
+  /// For an empty array (size 0), it returns an empty list or nested empty lists
+  /// matching the shape.
+  ///
+  /// Example:
+  /// ```dart
+  /// var a = NdArray.array([[1, 2], [3, 4]]);
+  /// print(a.toList()); // Output: [[1, 2], [3, 4]]
+  ///
+  /// var b = NdArray.array(5); // Scalar
+  /// print(b.toList()); // Output: [5]
+  ///
+  /// var c = NdArray.zeros([2, 0]);
+  /// print(c.toList()); // Output: [[], []]
+  /// ```
   List<dynamic> toList() {
     if (size == 0) {
-      return [];
+      // Handle empty arrays correctly based on dimensions
+      if (ndim == 0)
+        return []; // Should not happen for size 0? NumPy returns scalar item
+      if (ndim == 1) return [];
+      // For ndim > 1, create nested empty lists matching shape
+      dynamic buildEmptyNested(int dim) {
+        if (dim == ndim - 1) {
+          return List.filled(shape[dim], null,
+              growable: false); // Will be size 0 if shape[dim] is 0
+        }
+        List<dynamic> nested = List.filled(shape[dim], null, growable: false);
+        for (int i = 0; i < shape[dim]; ++i) {
+          nested[i] = buildEmptyNested(dim + 1);
+        }
+        return nested;
+      }
+
+      // Handle cases like shape [2, 0] -> [[], []]
+      if (shape.contains(0)) {
+        return buildEmptyNested(0);
+      } else {
+        return []; // Should not be reached if size is 0 and no dim is 0
+      }
     }
     if (ndim == 0) {
-      return [_getDataItem(data, offsetInBytes ~/ data.elementSizeInBytes)];
+      // Handle scalar array
+      return [
+        getDataItem(data, offsetInBytes ~/ data.elementSizeInBytes)
+      ]; // Use public version
     }
 
     dynamic buildNestedList(int dimension, List<int> currentIndices) {
@@ -754,8 +214,8 @@ class NdArray {
           for (int d = 0; d < ndim; d++) {
             byteOffset += currentIndices[d] * strides[d];
           }
-          currentLevelList[i] =
-              _getDataItem(data, byteOffset ~/ data.elementSizeInBytes);
+          currentLevelList[i] = getDataItem(data,
+              byteOffset ~/ data.elementSizeInBytes); // Use public version
         }
       } else {
         for (int i = 0; i < shape[dimension]; i++) {
@@ -763,31 +223,119 @@ class NdArray {
           currentLevelList[i] = buildNestedList(dimension + 1, currentIndices);
         }
       }
-      currentIndices[dimension] = 0;
+      // Reset index for this dimension before returning up the recursion
+      // currentIndices[dimension] = 0; // Not needed as a new list is passed down
       return currentLevelList;
     }
 
     return buildNestedList(0, List<int>.filled(ndim, 0));
   }
 
-  // --- Mathematical Operations ---
+  // --- Helper Methods (originally private, now library-private) ---
 
+  /// Returns a flat list of the data indices corresponding to the elements
+  /// in this view, in logical order.
+  /// Useful for iterating over view elements directly in the underlying buffer.
+  List<int> getViewDataIndices() {
+    // Renamed from _getViewDataIndices
+    if (size == 0) return []; // Handle empty view
+
+    final List<int> dataIndices = List<int>.filled(size, 0);
+    final List<int> currentIndices = List<int>.filled(ndim, 0);
+    final int elementSize = data.elementSizeInBytes;
+    int dataIndexCounter = 0;
+
+    for (int i = 0; i < size; i++) {
+      // Calculate byte offset for the current logical index within the view
+      int byteOffsetWithinView = 0;
+      for (int d = 0; d < ndim; d++) {
+        byteOffsetWithinView += currentIndices[d] * strides[d];
+      }
+      // Calculate the final byte offset in the original data buffer
+      final int finalByteOffset = offsetInBytes + byteOffsetWithinView;
+      // Convert byte offset to data index
+      dataIndices[dataIndexCounter++] = finalByteOffset ~/ elementSize;
+
+      // Increment the multi-dimensional logical index
+      for (int d = ndim - 1; d >= 0; d--) {
+        currentIndices[d]++;
+        if (currentIndices[d] < shape[d]) {
+          break; // No carry-over needed for this dimension
+        }
+        currentIndices[d] =
+            0; // Reset current dimension index and carry-over to the next
+      }
+    }
+    return dataIndices;
+  }
+
+  /// Assigns a scalar value to all elements within a given view.
+  /// Internal helper used by the `[]= operator`.
+  void assignScalarToView(NdArray targetView, num scalarValue) {
+    // Renamed from _assignScalarToView
+    // Use the public version now
+    final List<int> viewDataIndices =
+        targetView.getViewDataIndices(); // Use public version
+    for (final int dataIndex in viewDataIndices) {
+      try {
+        // Use the public version now
+        setDataItem(
+            targetView.data, dataIndex, scalarValue); // Use public version
+      } catch (e) {
+        throw ArgumentError(
+            'Failed to set scalar value $scalarValue to view element at data index $dataIndex: $e');
+      }
+    }
+  }
+
+  /// Converts the NdArray to a nested [List].
+  ///
+  /// The structure of the nested list mirrors the shape of the NdArray.
+  /// For a 0-dimensional array (scalar), it returns a list containing the single element.
+  /// For an empty array (size 0), it returns an empty list or nested empty lists
+  /// matching the shape.
+  ///
+  /// Example:
+  /// ```dart
+  /// var a = NdArray.array([[1, 2], [3, 4]]);
+  /// print(a.toList()); // Output: [[1, 2], [3, 4]]
+  ///
+  /// var b = NdArray.array(5); // Scalar
+  /// print(b.toList()); // Output: [5]
+  ///
+  /// var c = NdArray.zeros([2, 0]);
+  /// print(c.toList()); // Output: [[], []]
+  /// ```
+
+  // --- Helper Methods (originally private, now library-private) ---
+
+  /// at that position.
+  /// If any element in [indices] is a [Slice], it returns a new [NdArray] view
+  /// representing the sliced portion.
+  /// Performs element-wise addition with broadcasting.
+  ///
+  /// Supports addition with another [NdArray] or a scalar [num].
+  /// The result dtype is determined by promoting the types of the operands.
+  ///
+  /// Throws [ArgumentError] if the operand types are unsupported or if
+  /// broadcasting is not possible.
   NdArray operator +(dynamic other) {
     if (other is NdArray) {
       // --- Array-Array Addition with Broadcasting ---
       final List<int> broadcastShape =
-          _calculateBroadcastShape(shape, other.shape);
-      final int resultSize = _calculateSize(broadcastShape);
+          calculateBroadcastShape(shape, other.shape);
+      final int resultSize = calculateSize(broadcastShape);
       final int resultNdim = broadcastShape.length;
 
       // Determine result primitive data type based on operands' dtypes
       final Type resultDataType =
-          _getResultDataType(dtype, other.dtype); // Use the new function
+          getResultDataType(dtype, other.dtype); // Use the new function
       // Determine the actual TypedData type for the result array
       final Type resultTypedDataType = (resultDataType == double)
           ? Float64List
           : Int64List; // Default int to Int64List
 
+      // Use the static method from NdArray for creation
       final result = NdArray.zeros(broadcastShape, dtype: resultTypedDataType);
       if (resultSize == 0) return result;
 
@@ -844,16 +392,16 @@ class NdArray {
         final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
         // Perform operation and ensure correct type for result
-        final dynamic val1 = _getDataItem(data, thisDataIndex);
-        final dynamic val2 = _getDataItem(other.data, otherDataIndex);
+        final dynamic val1 = getDataItem(data, thisDataIndex);
+        final dynamic val2 = getDataItem(other.data, otherDataIndex);
         num sum;
         if (resultTypedDataType == Float64List) {
           sum = val1.toDouble() + val2.toDouble();
         } else {
           sum = val1.toInt() + val2.toInt();
         }
-        _setDataItem(result.data, resultDataIndex,
-            sum); // _setDataItem handles final conversion if needed
+        setDataItem(result.data, resultDataIndex,
+            sum); // setDataItem handles final conversion if needed
 
         // Increment multi-dimensional index for broadcast shape
         for (int d = resultNdim - 1; d >= 0; d--) {
@@ -874,6 +422,7 @@ class NdArray {
       } else {
         resultTypedDataType = Int64List; // Both are int types
       }
+      // Use the static method from NdArray for creation
       final result = NdArray.zeros(shape, dtype: resultTypedDataType);
       if (size == 0) return result;
 
@@ -895,14 +444,14 @@ class NdArray {
         final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
         // Perform operation ensuring correct types
-        final dynamic val1 = _getDataItem(data, thisDataIndex);
+        final dynamic val1 = getDataItem(data, thisDataIndex);
         num sum;
         if (resultTypedDataType == Float64List) {
           sum = val1.toDouble() + scalar.toDouble();
         } else {
           sum = val1.toInt() + scalar.toInt();
         }
-        _setDataItem(result.data, resultDataIndex, sum);
+        setDataItem(result.data, resultDataIndex, sum);
 
         for (int d = ndim - 1; d >= 0; d--) {
           currentIndices[d]++;
@@ -917,22 +466,30 @@ class NdArray {
     }
   }
 
+  /// Performs element-wise subtraction with broadcasting.
+  ///
+  /// Supports subtraction with another [NdArray] or a scalar [num].
+  /// The result dtype is determined by promoting the types of the operands.
+  ///
+  /// Throws [ArgumentError] if the operand types are unsupported or if
+  /// broadcasting is not possible.
   NdArray operator -(dynamic other) {
     if (other is NdArray) {
       // --- Array-Array Subtraction with Broadcasting ---
       final List<int> broadcastShape =
-          _calculateBroadcastShape(shape, other.shape);
-      final int resultSize = _calculateSize(broadcastShape);
+          calculateBroadcastShape(shape, other.shape);
+      final int resultSize = calculateSize(broadcastShape);
       final int resultNdim = broadcastShape.length;
 
       // Determine result primitive data type based on operands' dtypes
       final Type resultDataType =
-          _getResultDataType(dtype, other.dtype); // Use the new function
+          getResultDataType(dtype, other.dtype); // Use the new function
       // Determine the actual TypedData type for the result array
       final Type resultTypedDataType = (resultDataType == double)
           ? Float64List
           : Int64List; // Default int to Int64List
 
+      // Use the static method from NdArray for creation
       final result = NdArray.zeros(broadcastShape, dtype: resultTypedDataType);
       if (resultSize == 0) return result;
 
@@ -981,16 +538,16 @@ class NdArray {
         final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
         // Perform operation and ensure correct type for result
-        final dynamic val1 = _getDataItem(data, thisDataIndex);
-        final dynamic val2 = _getDataItem(other.data, otherDataIndex);
+        final dynamic val1 = getDataItem(data, thisDataIndex);
+        final dynamic val2 = getDataItem(other.data, otherDataIndex);
         num diff;
         if (resultTypedDataType == Float64List) {
           diff = val1.toDouble() - val2.toDouble();
         } else {
           diff = val1.toInt() - val2.toInt();
         }
-        _setDataItem(result.data, resultDataIndex,
-            diff); // _setDataItem handles final conversion if needed
+        setDataItem(result.data, resultDataIndex,
+            diff); // setDataItem handles final conversion if needed
 
         // Increment multi-dimensional index for broadcast shape
         for (int d = resultNdim - 1; d >= 0; d--) {
@@ -1011,6 +568,7 @@ class NdArray {
       } else {
         resultTypedDataType = Int64List; // Both are int types
       }
+      // Use the static method from NdArray for creation
       final result = NdArray.zeros(shape, dtype: resultTypedDataType);
       if (size == 0) return result;
 
@@ -1032,14 +590,14 @@ class NdArray {
         final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
         // Perform operation ensuring correct types
-        final dynamic val1 = _getDataItem(data, thisDataIndex);
+        final dynamic val1 = getDataItem(data, thisDataIndex);
         num diff;
         if (resultTypedDataType == Float64List) {
           diff = val1.toDouble() - scalar.toDouble();
         } else {
           diff = val1.toInt() - scalar.toInt();
         }
-        _setDataItem(result.data, resultDataIndex, diff);
+        setDataItem(result.data, resultDataIndex, diff);
 
         for (int d = ndim - 1; d >= 0; d--) {
           currentIndices[d]++;
@@ -1054,22 +612,29 @@ class NdArray {
     }
   }
 
+  /// Performs element-wise multiplication with broadcasting.
+  ///
+  /// Supports multiplication with another [NdArray] or a scalar [num].
+  /// The result dtype is determined by promoting the types of the operands.
+  ///
+  /// Throws [ArgumentError] if the operand types are unsupported or if
+  /// broadcasting is not possible.
   NdArray operator *(dynamic other) {
     if (other is NdArray) {
       // --- Array-Array Multiplication with Broadcasting ---
       final List<int> broadcastShape =
-          _calculateBroadcastShape(shape, other.shape);
-      final int resultSize = _calculateSize(broadcastShape);
+          calculateBroadcastShape(shape, other.shape);
+      final int resultSize = calculateSize(broadcastShape);
       final int resultNdim = broadcastShape.length;
 
       // Determine result TypedData type based on operands' TypedData types
-      // Determine result TypedData type based on operands' TypedData types
       final Type resultDataType =
-          _getResultDataType(dtype, other.dtype); // Use the new function
+          getResultDataType(dtype, other.dtype); // Use the new function
       // Determine the actual TypedData type for the result array
       final Type resultTypedDataType = (resultDataType == double)
           ? Float64List
           : Int64List; // Default int to Int64List
+      // Use the static method from NdArray for creation
       final result = NdArray.zeros(broadcastShape, dtype: resultTypedDataType);
       if (resultSize == 0) return result;
 
@@ -1118,16 +683,16 @@ class NdArray {
         final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
         // Perform operation
-        final dynamic val1 = _getDataItem(data, thisDataIndex);
-        final dynamic val2 = _getDataItem(other.data, otherDataIndex);
+        final dynamic val1 = getDataItem(data, thisDataIndex);
+        final dynamic val2 = getDataItem(other.data, otherDataIndex);
         final num product; // Use num for intermediate calculation
         if (resultTypedDataType == Float64List) {
           product = val1.toDouble() * val2.toDouble();
         } else {
           product = val1.toInt() * val2.toInt();
         }
-        _setDataItem(result.data, resultDataIndex,
-            product); // _setDataItem handles final conversion if needed
+        setDataItem(result.data, resultDataIndex,
+            product); // setDataItem handles final conversion if needed
 
         // Increment multi-dimensional index for broadcast shape
         for (int d = resultNdim - 1; d >= 0; d--) {
@@ -1148,6 +713,7 @@ class NdArray {
       } else {
         resultTypedDataType = Int64List; // Both are int types
       }
+      // Use the static method from NdArray for creation
       final result = NdArray.zeros(shape, dtype: resultTypedDataType);
       if (size == 0) return result;
 
@@ -1169,15 +735,15 @@ class NdArray {
         final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
         // Perform operation ensuring correct types
-        final dynamic val1 = _getDataItem(data, thisDataIndex);
+        final dynamic val1 = getDataItem(data, thisDataIndex);
         num product;
         if (resultTypedDataType == Float64List) {
           product = val1.toDouble() * scalar.toDouble();
         } else {
           product = val1.toInt() * scalar.toInt();
         }
-        _setDataItem(result.data, resultDataIndex,
-            product); // _setDataItem handles final conversion if needed
+        setDataItem(result.data, resultDataIndex,
+            product); // setDataItem handles final conversion if needed
 
         for (int d = ndim - 1; d >= 0; d--) {
           currentIndices[d]++;
@@ -1192,33 +758,25 @@ class NdArray {
     }
   }
 
-  /// Performs element-wise division of this array by a scalar (num).
+  /// Performs element-wise division with broadcasting.
   ///
+  /// Supports division by another [NdArray] or a scalar [num].
   /// The result is always a double-precision floating-point array (`Float64List`).
-  /// Division by zero follows standard Dart double behavior:
-  /// - `x / 0` where `x > 0` results in `Infinity`.
-  /// - `x / 0` where `x < 0` results in `-Infinity`.
-  /// - `0 / 0` results in `NaN` (Not a Number).
+  /// Division by zero follows standard Dart double behavior.
   ///
-  /// Example:
-  /// ```dart
-  /// var a = NdArray.array([10, 20, 30]);
-  /// var b = a / 10; // b will be NdArray([1.0, 2.0, 3.0], dtype: Float64List)
-  ///
-  /// var c = NdArray.array([1.0, 0.0, -1.0]);
-  /// var d = c / 0; // d will be NdArray([Infinity, NaN, -Infinity], dtype: Float64List)
-  /// ```
-  /// Throws [ArgumentError] if [other] is not a num.
-  /// Throws [UnimplementedError] if [other] is an NdArray (Array-Array division not implemented).
+  /// Throws [ArgumentError] if the operand types are unsupported or if
+  /// broadcasting is not possible.
   NdArray operator /(dynamic other) {
     if (other is num) {
       // --- Array-Scalar Division ---
       final num scalar = other;
 
       // 1. Result Type is always double for division
-      const Type resultTypedDataType = Float64List;
+      final Type resultTypedDataType =
+          Float64List; // Use final instead of const
 
       // 2. Create Result Array
+      // Use the static method from NdArray for creation
       final result = NdArray.zeros(shape, dtype: resultTypedDataType);
 
       // 3. Element-wise Division using logical indices
@@ -1245,13 +803,13 @@ class NdArray {
         final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
         // Get value and divide by scalar
-        final dynamic val1 = _getDataItem(data, thisDataIndex);
+        final dynamic val1 = getDataItem(data, thisDataIndex);
 
         // Perform division, always resulting in double, handle division by zero
         final double divisionResult = val1.toDouble() / scalar.toDouble();
 
         // Set result (which is always double)
-        _setDataItem(result.data, resultDataIndex, divisionResult);
+        setDataItem(result.data, resultDataIndex, divisionResult);
 
         // Increment logical indices
         for (int d = ndim - 1; d >= 0; d--) {
@@ -1264,12 +822,14 @@ class NdArray {
     } else if (other is NdArray) {
       // --- Array-Array Division with Broadcasting ---
       final List<int> broadcastShape =
-          _calculateBroadcastShape(shape, other.shape);
-      final int resultSize = _calculateSize(broadcastShape);
+          calculateBroadcastShape(shape, other.shape);
+      final int resultSize = calculateSize(broadcastShape);
       final int resultNdim = broadcastShape.length;
 
       // Result is always double for division
-      const Type resultTypedDataType = Float64List;
+      final Type resultTypedDataType =
+          Float64List; // Use final instead of const
+      // Use the static method from NdArray for creation
       final result = NdArray.zeros(broadcastShape, dtype: resultTypedDataType);
       if (resultSize == 0) return result;
 
@@ -1318,11 +878,11 @@ class NdArray {
         final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
         // Perform operation
-        final dynamic val1 = _getDataItem(data, thisDataIndex);
-        final dynamic val2 = _getDataItem(other.data, otherDataIndex);
+        final dynamic val1 = getDataItem(data, thisDataIndex);
+        final dynamic val2 = getDataItem(other.data, otherDataIndex);
         // Perform division, always resulting in double, handle division by zero
         final double divisionResult = val1.toDouble() / val2.toDouble();
-        _setDataItem(result.data, resultDataIndex, divisionResult);
+        setDataItem(result.data, resultDataIndex, divisionResult);
 
         // Increment multi-dimensional index for broadcast shape
         for (int d = resultNdim - 1; d >= 0; d--) {
@@ -1338,6 +898,9 @@ class NdArray {
     }
   }
 
+  ///
+  /// Throws [RangeError] if indices are out of bounds or the wrong number of
+  /// indices are provided.
   /// Calculates the non-negative square root of each element.
   ///
   /// The result is always a double-precision floating-point array (`Float64List`).
@@ -1353,7 +916,7 @@ class NdArray {
   /// ```
   NdArray sqrt() {
     // Result is always double
-    const Type resultTypedDataType = Float64List;
+    final Type resultTypedDataType = Float64List; // Use final
     final result = NdArray.zeros(shape, dtype: resultTypedDataType);
 
     if (size == 0) return result;
@@ -1378,9 +941,9 @@ class NdArray {
       final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
       // Get value, calculate sqrt, and set result
-      final dynamic val = _getDataItem(data, thisDataIndex);
+      final dynamic val = getDataItem(data, thisDataIndex);
       final double sqrtResult = math.sqrt(val.toDouble()); // Use dart:math.sqrt
-      _setDataItem(result.data, resultDataIndex, sqrtResult);
+      setDataItem(result.data, resultDataIndex, sqrtResult);
 
       // Increment logical indices
       for (int d = ndim - 1; d >= 0; d--) {
@@ -1406,7 +969,7 @@ class NdArray {
   /// ```
   NdArray exp() {
     // Result is always double
-    const Type resultTypedDataType = Float64List;
+    final Type resultTypedDataType = Float64List; // Use final
     final result = NdArray.zeros(shape, dtype: resultTypedDataType);
 
     if (size == 0) return result;
@@ -1431,9 +994,9 @@ class NdArray {
       final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
       // Get value, calculate exp, and set result
-      final dynamic val = _getDataItem(data, thisDataIndex);
+      final dynamic val = getDataItem(data, thisDataIndex);
       final double expResult = math.exp(val.toDouble()); // Use dart:math.exp
-      _setDataItem(result.data, resultDataIndex, expResult);
+      setDataItem(result.data, resultDataIndex, expResult);
 
       // Increment logical indices
       for (int d = ndim - 1; d >= 0; d--) {
@@ -1457,7 +1020,7 @@ class NdArray {
   /// ```
   NdArray sin() {
     // Result is always double
-    const Type resultTypedDataType = Float64List;
+    final Type resultTypedDataType = Float64List; // Use final
     final result = NdArray.zeros(shape, dtype: resultTypedDataType);
 
     if (size == 0) return result;
@@ -1482,9 +1045,9 @@ class NdArray {
       final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
       // Get value, calculate sin, and set result
-      final dynamic val = _getDataItem(data, thisDataIndex);
+      final dynamic val = getDataItem(data, thisDataIndex);
       final double sinResult = math.sin(val.toDouble()); // Use dart:math.sin
-      _setDataItem(result.data, resultDataIndex, sinResult);
+      setDataItem(result.data, resultDataIndex, sinResult);
 
       // Increment logical indices
       for (int d = ndim - 1; d >= 0; d--) {
@@ -1508,7 +1071,7 @@ class NdArray {
   /// ```
   NdArray cos() {
     // Result is always double
-    const Type resultTypedDataType = Float64List;
+    final Type resultTypedDataType = Float64List; // Use final
     final result = NdArray.zeros(shape, dtype: resultTypedDataType);
 
     if (size == 0) return result;
@@ -1533,9 +1096,9 @@ class NdArray {
       final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
       // Get value, calculate cos, and set result
-      final dynamic val = _getDataItem(data, thisDataIndex);
+      final dynamic val = getDataItem(data, thisDataIndex);
       final double cosResult = math.cos(val.toDouble()); // Use dart:math.cos
-      _setDataItem(result.data, resultDataIndex, cosResult);
+      setDataItem(result.data, resultDataIndex, cosResult);
 
       // Increment logical indices
       for (int d = ndim - 1; d >= 0; d--) {
@@ -1559,7 +1122,7 @@ class NdArray {
   /// ```
   NdArray tan() {
     // Result is always double
-    const Type resultTypedDataType = Float64List;
+    final Type resultTypedDataType = Float64List; // Use final
     final result = NdArray.zeros(shape, dtype: resultTypedDataType);
 
     if (size == 0) return result;
@@ -1584,9 +1147,9 @@ class NdArray {
       final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
       // Get value, calculate tan, and set result
-      final dynamic val = _getDataItem(data, thisDataIndex);
+      final dynamic val = getDataItem(data, thisDataIndex);
       final double tanResult = math.tan(val.toDouble()); // Use dart:math.tan
-      _setDataItem(result.data, resultDataIndex, tanResult);
+      setDataItem(result.data, resultDataIndex, tanResult);
 
       // Increment logical indices
       for (int d = ndim - 1; d >= 0; d--) {
@@ -1613,7 +1176,7 @@ class NdArray {
   /// ```
   NdArray log() {
     // Result is always double
-    const Type resultTypedDataType = Float64List;
+    final Type resultTypedDataType = Float64List; // Use final
     final result = NdArray.zeros(shape, dtype: resultTypedDataType);
 
     if (size == 0) return result;
@@ -1638,9 +1201,9 @@ class NdArray {
       final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
       // Get value, calculate log, and set result
-      final dynamic val = _getDataItem(data, thisDataIndex);
+      final dynamic val = getDataItem(data, thisDataIndex);
       final double logResult = math.log(val.toDouble()); // Use dart:math.log
-      _setDataItem(result.data, resultDataIndex, logResult);
+      setDataItem(result.data, resultDataIndex, logResult);
 
       // Increment logical indices
       for (int d = ndim - 1; d >= 0; d--) {
@@ -1652,49 +1215,242 @@ class NdArray {
     return result;
   }
 
-  // --- Private Helper Methods ---
+  /// Throws [ArgumentError] if an invalid type is provided in the [indices] list.
+  dynamic operator [](List<Object> indices) {
+    if (indices.length != ndim)
+      throw RangeError('Expected $ndim indices/slices, got ${indices.length}.');
+    bool isSlicing = indices.any((item) => item is Slice);
 
-  List<int> _getViewDataIndices() {
-    if (size == 0) return []; // Handle empty view
-
-    final List<int> dataIndices = List<int>.filled(size, 0);
-    final List<int> currentIndices = List<int>.filled(ndim, 0);
-    final int elementSize = data.elementSizeInBytes;
-    int dataIndexCounter = 0;
-
-    for (int i = 0; i < size; i++) {
-      // Calculate byte offset for the current logical index within the view
+    if (!isSlicing) {
+      // Pure integer indexing
+      List<int> intIndices;
+      try {
+        intIndices = indices.cast<int>();
+      } catch (e) {
+        throw ArgumentError('Invalid index type: $indices.');
+      }
       int byteOffsetWithinView = 0;
-      for (int d = 0; d < ndim; d++) {
-        byteOffsetWithinView += currentIndices[d] * strides[d];
+      for (int i = 0; i < ndim; i++) {
+        int index = intIndices[i];
+        int dimSize = shape[i];
+        if (index < 0) index += dimSize;
+        if (index < 0 || index >= dimSize)
+          throw RangeError(
+              'Index $index out of bounds for dim $i size $dimSize');
+        byteOffsetWithinView += index * strides[i];
       }
-      // Calculate the final byte offset in the original data buffer
       final int finalByteOffset = offsetInBytes + byteOffsetWithinView;
-      // Convert byte offset to data index
-      dataIndices[dataIndexCounter++] = finalByteOffset ~/ elementSize;
-
-      // Increment the multi-dimensional logical index
-      for (int d = ndim - 1; d >= 0; d--) {
-        currentIndices[d]++;
-        if (currentIndices[d] < shape[d]) {
-          break; // No carry-over needed for this dimension
+      final int dataIndex = finalByteOffset ~/ data.elementSizeInBytes;
+      return getDataItem(data, dataIndex);
+    } else {
+      // Slicing (create a view)
+      final List<int> newShape = [];
+      final List<int> newStrides = [];
+      int viewOffsetInBytes = offsetInBytes;
+      for (int i = 0; i < ndim; i++) {
+        final indexOrSlice = indices[i];
+        final currentDimSize = shape[i];
+        final currentStride = strides[i];
+        if (indexOrSlice is int) {
+          int index = indexOrSlice;
+          if (index < 0) index += currentDimSize;
+          if (index < 0 || index >= currentDimSize)
+            throw RangeError(
+                'Index $index out of bounds for dim $i size $currentDimSize');
+          viewOffsetInBytes += index * currentStride;
+        } else if (indexOrSlice is Slice) {
+          final slice = indexOrSlice;
+          final (start, _, step, length) = slice.adjust(currentDimSize);
+          newShape.add(length);
+          newStrides.add(currentStride * step);
+          viewOffsetInBytes += start * currentStride;
+        } else {
+          throw ArgumentError(
+              'Invalid type in index list: ${indexOrSlice.runtimeType}.');
         }
-        currentIndices[d] =
-            0; // Reset current dimension index and carry-over to the next
       }
+      final int newSize =
+          newShape.isEmpty ? 1 : newShape.reduce((a, b) => a * b);
+      final int newNdim = newShape.length;
+      // Note: NdArray._ is the internal constructor
+      return NdArray._(data, newShape, newStrides, dtype, newSize, newNdim,
+          viewOffsetInBytes);
     }
-    return dataIndices;
   }
 
-  void _assignScalarToView(NdArray targetView, num scalarValue) {
-    final List<int> viewDataIndices = targetView._getViewDataIndices();
-    for (final int dataIndex in viewDataIndices) {
+  /// Assigns a [value] to the element or slice specified by [indices].
+  ///
+  /// If all elements in [indices] are integers, assigns the scalar [value]
+  /// to the single element at that position.
+  /// If any element in [indices] is a [Slice], assigns the [value] (which can be
+  /// a scalar or a broadcastable [NdArray]) to the resulting view.
+  ///
+  /// Throws [RangeError] if indices are out of bounds or the wrong number of
+  /// indices are provided.
+  /// Throws [ArgumentError] if an invalid type is provided in the [indices] list,
+  /// if the [value] type is incompatible, or if broadcasting fails.
+  void operator []=(List<Object> indices, dynamic value) {
+    if (indices.length != ndim) {
+      throw RangeError(
+          'Incorrect number of indices provided. Expected $ndim, got ${indices.length}.');
+    }
+    bool isSlicing = indices.any((item) => item is Slice);
+
+    if (!isSlicing) {
+      // --- Integer Index Assignment ---
+      List<int> intIndices;
       try {
-        _setDataItem(targetView.data, dataIndex, scalarValue);
+        intIndices = indices.cast<int>();
       } catch (e) {
         throw ArgumentError(
-            'Failed to set scalar value $scalarValue to view element at data index $dataIndex: $e');
+            'Invalid index type for integer assignment: expected List<int>, got $indices.');
+      }
+
+      if (value is! num) {
+        throw ArgumentError(
+            'Value for single element assignment must be a number (int or double), got ${value.runtimeType}');
+      }
+
+      int byteOffsetWithinView = 0;
+      for (int i = 0; i < ndim; i++) {
+        int index = intIndices[i];
+        int dimSize = shape[i];
+        if (index < 0) index += dimSize;
+        if (index < 0 || index >= dimSize) {
+          throw RangeError(
+              'Index $index is out of bounds for dim $i size $dimSize');
+        }
+        byteOffsetWithinView += index * strides[i];
+      }
+
+      final int finalByteOffset = offsetInBytes + byteOffsetWithinView;
+      final int dataIndex = finalByteOffset ~/ data.elementSizeInBytes;
+
+      try {
+        setDataItem(data, dataIndex, value);
+      } catch (e) {
+        throw ArgumentError('Failed to set value: $e');
+      }
+    } else {
+      // --- Slice Assignment ---
+      NdArray targetView;
+      try {
+        // Using 'this[]' relies on the operator[] being defined in this class
+        targetView = this[indices]; // Get the view representing the slice
+      } catch (e) {
+        throw ArgumentError('Invalid slice or index for assignment target: $e');
+      }
+
+      if (value is NdArray) {
+        // --- Assigning an NdArray to a Slice ---
+        final NdArray sourceArray = value;
+
+        // 1. Check dtype compatibility (TODO: Implement type promotion/casting later)
+        if (targetView.dtype != sourceArray.dtype) {
+          // Attempt conversion if possible (e.g., int to double)
+          if (targetView.dtype == Float64List &&
+              sourceArray.dtype == Int32List) {
+            // Allow assigning int array to double slice (will convert)
+          } else if (targetView.dtype == Int32List &&
+              sourceArray.dtype == Float64List) {
+            // Allow assigning double array to int slice (will truncate)
+          } else {
+            throw ArgumentError(
+                'Cannot assign NdArray with dtype ${sourceArray.dtype} to slice with dtype ${targetView.dtype}. Type promotion not yet implemented for this combination.');
+          }
+        }
+
+        // 2. Check broadcast compatibility
+        final List<int> broadcastShape;
+        try {
+          // The source array must be broadcastable *to* the target view's shape
+          broadcastShape =
+              calculateBroadcastShape(targetView.shape, sourceArray.shape);
+          // Ensure the broadcast result matches the target view's shape exactly
+          if (!const ListEquality().equals(broadcastShape, targetView.shape)) {
+            throw ArgumentError(
+                'Shape mismatch: Source array shape ${sourceArray.shape} cannot be broadcast to target slice shape ${targetView.shape}');
+          }
+        } catch (e) {
+          throw ArgumentError(
+              'Source array shape ${sourceArray.shape} cannot be broadcast to target slice shape ${targetView.shape}: $e');
+        }
+
+        // 3. Perform element-wise assignment with broadcasting
+        if (targetView.size == 0)
+          return; // Nothing to assign if target is empty
+
+        final int targetNdim = targetView.ndim;
+        final List<int> currentIndices = List<int>.filled(targetNdim, 0);
+        final int targetElementSizeBytes = targetView.data
+            .elementSizeInBytes; // Should be same as this.data.elementSizeInBytes
+        final int sourceElementSizeBytes = sourceArray.data.elementSizeInBytes;
+
+        for (int i = 0; i < targetView.size; i++) {
+          // Calculate byte offset for the target view element
+          int targetByteOffset = targetView.offsetInBytes;
+          for (int d = 0; d < targetNdim; d++) {
+            targetByteOffset += currentIndices[d] * targetView.strides[d];
+          }
+          final int targetDataIndex =
+              targetByteOffset ~/ targetElementSizeBytes;
+
+          // Calculate corresponding byte offset for the source array element (with broadcasting)
+          int sourceByteOffset = sourceArray.offsetInBytes;
+          for (int d = 0; d < targetNdim; d++) {
+            final int idx = currentIndices[d];
+            final int sourceDimIdx =
+                d - (targetNdim - sourceArray.ndim); // Align dimensions
+            if (sourceDimIdx >= 0) {
+              final int sourceDimSize = sourceArray.shape[sourceDimIdx];
+              final int sourceStride = sourceArray.strides[sourceDimIdx];
+              // Use index 0 if the source dimension was broadcast
+              if (sourceDimSize == 1 && targetView.shape[d] > 1) {
+                // Use index 0 for broadcast dimension -> add 0 * stride
+              } else {
+                sourceByteOffset += idx * sourceStride;
+              }
+            }
+            // If sourceDimIdx < 0, this dimension doesn't exist in source, effectively broadcast
+          }
+          final int sourceDataIndex =
+              sourceByteOffset ~/ sourceElementSizeBytes;
+
+          // Get value from source and set it in the target view's data buffer
+          final dynamic sourceValue =
+              getDataItem(sourceArray.data, sourceDataIndex);
+          try {
+            // Use targetView.data which points to the same underlying buffer as this.data
+            setDataItem(targetView.data, targetDataIndex, sourceValue);
+          } catch (e) {
+            throw ArgumentError(
+                'Failed to set value during slice assignment: $e');
+          }
+
+          // Increment multi-dimensional index for the target view shape
+          for (int d = targetNdim - 1; d >= 0; d--) {
+            currentIndices[d]++;
+            if (currentIndices[d] < targetView.shape[d]) break;
+            currentIndices[d] = 0;
+          }
+        }
+      } else if (value is num) {
+        // --- Assigning a Scalar to a Slice ---
+        // Note: _assignScalarToView needs to be accessible or moved
+        assignScalarToView(targetView, value);
+      } else {
+        throw ArgumentError(
+            'Value for slice assignment must be a number or an NdArray, got ${value.runtimeType}');
       }
     }
   }
+
+  // --- Manipulation ---
+  // Defined in ndarray_manipulation.dart via methods
+
+  // --- Mathematical Operations ---
+  // Defined in ndarray_math_ops.dart via operator methods
+
+  // --- Element-wise Mathematical Functions ---
+  // Defined in ndarray_math_funcs.dart via methods
 } // End of NdArray class

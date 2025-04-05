@@ -4,10 +4,10 @@ import 'package:numdart/numdart.dart'; // Import main library now that NdArray i
 import 'package:numdart/src/ndarray.dart'; // Keep internal import for accessing internal members if needed later
 
 void main() {
-  group('NdArray.array creation tests', () {
+  group('array creation tests', () {
     test('1D List<int> creation', () {
       var list = [1, 2, 3, 4];
-      var nd = NdArray.array(list);
+      var nd = array(list);
       expect(nd.shape, equals([4]));
       expect(nd.dtype, equals(int)); // Already correct
       expect(nd.size, equals(4));
@@ -18,7 +18,7 @@ void main() {
 
     test('1D List<double> creation', () {
       var list = [1.0, 2.5, 3.0];
-      var nd = NdArray.array(list);
+      var nd = array(list);
       expect(nd.shape, equals([3]));
       expect(nd.dtype, equals(double)); // Already correct
       expect(nd.size, equals(3));
@@ -29,7 +29,7 @@ void main() {
 
     test('1D List<num> (mixed) creation', () {
       var list = [1, 2.5, 3];
-      var nd = NdArray.array(list);
+      var nd = array(list);
       expect(nd.shape, equals([3]));
       expect(nd.dtype, equals(double)); // Already correct
       expect(nd.size, equals(3));
@@ -44,7 +44,7 @@ void main() {
         [3, 4],
         [5, 6]
       ];
-      var nd = NdArray.array(list);
+      var nd = array(list);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals([3, 2]));
       expect(nd.dtype, equals(int)); // Already correct
@@ -59,7 +59,7 @@ void main() {
         [1.0, 2.0],
         [3.0, 4.0]
       ];
-      var nd = NdArray.array(list, dtype: Float32List);
+      var nd = array(list, dtype: Float32List);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals([2, 2]));
       expect(nd.dtype, equals(double)); // Already correct
@@ -82,7 +82,7 @@ void main() {
           [7, 8]
         ]
       ];
-      var nd = NdArray.array(list);
+      var nd = array(list);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals([2, 2, 2]));
       expect(nd.dtype, equals(int)); // Already correct
@@ -95,7 +95,7 @@ void main() {
 
     test('Empty list [] creation', () {
       var list = [];
-      var nd = NdArray.array(list);
+      var nd = array(list);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals([0]));
       expect(nd.dtype, equals(double)); // Already correct
@@ -109,7 +109,7 @@ void main() {
 
     test('List with empty list [[]] creation', () {
       var list = [[]];
-      var nd = NdArray.array(list);
+      var nd = array(list);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals([1, 0]));
       expect(nd.dtype, equals(double)); // Already correct
@@ -132,7 +132,7 @@ void main() {
 
     test('List with multiple empty lists [[], []] creation', () {
       var list = [[], []];
-      var nd = NdArray.array(list);
+      var nd = array(list);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals([2, 0]));
       expect(nd.dtype, equals(double)); // Already correct
@@ -149,27 +149,27 @@ void main() {
         [1, 2],
         [3, 4, 5]
       ];
-      expect(() => NdArray.array(list), throwsArgumentError);
+      expect(() => array(list), throwsArgumentError);
       var list2 = [
         1,
         [2, 3]
       ];
-      expect(() => NdArray.array(list2), throwsArgumentError);
+      expect(() => array(list2), throwsArgumentError);
     });
 
     test('Inconsistent type (non-numeric) throws error', () {
       var list = [1, 2, 'hello'];
-      expect(() => NdArray.array(list), throwsArgumentError);
+      expect(() => array(list), throwsArgumentError);
       var list2 = [
         [1, 2],
         [3, true]
       ];
-      expect(() => NdArray.array(list2), throwsArgumentError);
+      expect(() => array(list2), throwsArgumentError);
     });
 
     test('Explicit dtype Int32List', () {
       var list = [10, 20, 30];
-      var nd = NdArray.array(list, dtype: Int32List);
+      var nd = array(list, dtype: Int32List);
       expect(nd.shape, equals([3]));
       expect(nd.dtype, equals(int));
       expect(nd.data, isA<Int32List>());
@@ -180,10 +180,10 @@ void main() {
     });
   }); // End of array group
 
-  group('NdArray.zeros creation tests', () {
+  group('zeros creation tests', () {
     test('zeros with shape [3]', () {
       var shape = [3];
-      var nd = NdArray.zeros(shape);
+      var nd = zeros(shape);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals(shape));
       expect(nd.dtype, equals(double));
@@ -196,7 +196,7 @@ void main() {
 
     test('zeros with shape [2, 3] and dtype Int32List', () {
       var shape = [2, 3];
-      var nd = NdArray.zeros(shape, dtype: Int32List);
+      var nd = zeros(shape, dtype: Int32List);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals(shape));
       expect(nd.dtype, equals(int));
@@ -210,7 +210,7 @@ void main() {
 
     test('zeros with shape [2, 0]', () {
       var shape = [2, 0];
-      var nd = NdArray.zeros(shape);
+      var nd = zeros(shape);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals(shape));
       expect(nd.dtype, equals(double));
@@ -228,7 +228,7 @@ void main() {
 
     test('zeros with empty shape [] - Scalar', () {
       var shape = <int>[];
-      var nd = NdArray.zeros(shape);
+      var nd = zeros(shape);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals(shape));
       expect(nd.dtype, equals(double)); // Already correct
@@ -241,14 +241,14 @@ void main() {
 
     test('zeros with negative dimension throws error', () {
       var shape = [2, -3];
-      expect(() => NdArray.zeros(shape), throwsArgumentError);
+      expect(() => zeros(shape), throwsArgumentError);
     });
   }); // End of zeros group
 
-  group('NdArray.ones creation tests', () {
+  group('ones creation tests', () {
     test('ones with shape [4]', () {
       var shape = [4];
-      var nd = NdArray.ones(shape);
+      var nd = ones(shape);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals(shape));
       expect(nd.dtype, equals(double));
@@ -261,7 +261,7 @@ void main() {
 
     test('ones with shape [2, 2] and dtype Int8List', () {
       var shape = [2, 2];
-      var nd = NdArray.ones(shape, dtype: Int8List);
+      var nd = ones(shape, dtype: Int8List);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals(shape));
       expect(nd.dtype, equals(int));
@@ -275,7 +275,7 @@ void main() {
 
     test('ones with shape [3, 0]', () {
       var shape = [3, 0];
-      var nd = NdArray.ones(shape);
+      var nd = ones(shape);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals(shape));
       expect(nd.dtype, equals(double)); // Already correct
@@ -289,7 +289,7 @@ void main() {
 
     test('ones with empty shape [] - Scalar', () {
       var shape = <int>[];
-      var nd = NdArray.ones(shape);
+      var nd = ones(shape);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals(shape));
       expect(nd.dtype, equals(double));
@@ -302,13 +302,13 @@ void main() {
 
     test('ones with negative dimension throws error', () {
       var shape = [-1, 5];
-      expect(() => NdArray.ones(shape), throwsArgumentError);
+      expect(() => ones(shape), throwsArgumentError);
     });
   }); // End of ones group
 
-  group('NdArray.arange creation tests', () {
+  group('arange creation tests', () {
     test('arange with stop only (int)', () {
-      var nd = NdArray.arange(5);
+      var nd = arange(5);
       expect(nd.shape, equals([5]));
       expect(nd.dtype, equals(int));
       expect(nd.data, isA<Int64List>());
@@ -316,7 +316,7 @@ void main() {
     });
 
     test('arange with stop only (double)', () {
-      var nd = NdArray.arange(3.0);
+      var nd = arange(3.0);
       expect(nd.shape, equals([3]));
       expect(nd.dtype, equals(double)); // Already correct
       expect(nd.data, isA<Float64List>());
@@ -324,7 +324,7 @@ void main() {
     });
 
     test('arange with start and stop (int)', () {
-      var nd = NdArray.arange(2, stop: 6);
+      var nd = arange(2, stop: 6);
       expect(nd.shape, equals([4]));
       expect(nd.dtype, equals(int));
       expect(nd.data, isA<Int64List>());
@@ -332,7 +332,7 @@ void main() {
     });
 
     test('arange with start, stop, and step (int)', () {
-      var nd = NdArray.arange(1, stop: 10, step: 2);
+      var nd = arange(1, stop: 10, step: 2);
       expect(nd.shape, equals([5]));
       expect(nd.dtype, equals(int)); // Already correct
       expect(nd.data, isA<Int64List>());
@@ -340,7 +340,7 @@ void main() {
     });
 
     test('arange with start, stop, and step (double)', () {
-      var nd = NdArray.arange(1.0, stop: 3.0, step: 0.5);
+      var nd = arange(1.0, stop: 3.0, step: 0.5);
       expect(nd.shape, equals([4]));
       expect(nd.dtype, equals(double));
       expect(nd.data, isA<Float64List>());
@@ -351,7 +351,7 @@ void main() {
     });
 
     test('arange with negative step (int)', () {
-      var nd = NdArray.arange(5, stop: 1, step: -1);
+      var nd = arange(5, stop: 1, step: -1);
       expect(nd.shape, equals([4]));
       expect(nd.dtype, equals(int)); // Already correct
       expect(nd.data, isA<Int64List>());
@@ -359,7 +359,7 @@ void main() {
     });
 
     test('arange with negative step (double)', () {
-      var nd = NdArray.arange(2.5, stop: 0.0, step: -0.5);
+      var nd = arange(2.5, stop: 0.0, step: -0.5);
       expect(nd.shape, equals([5]));
       expect(nd.dtype, equals(double)); // Already correct
       expect(nd.data, isA<Float64List>());
@@ -371,19 +371,19 @@ void main() {
     });
 
     test('arange resulting in empty array (positive step)', () {
-      var nd = NdArray.arange(5, stop: 5);
+      var nd = arange(5, stop: 5);
       expect(nd.shape, equals([0]));
       expect(nd.size, equals(0));
       expect(nd.dtype, equals(int)); // Already correct
       expect(nd.data, isA<Int64List>());
       expect((nd.data as Int64List).length, equals(0));
-      var nd2 = NdArray.arange(6, stop: 5);
+      var nd2 = arange(6, stop: 5);
       expect(nd2.shape, equals([0]));
       expect(nd2.size, equals(0));
     });
 
     test('arange resulting in empty array (negative step)', () {
-      var nd = NdArray.arange(1, stop: 5, step: -1);
+      var nd = arange(1, stop: 5, step: -1);
       expect(nd.shape, equals([0]));
       expect(nd.size, equals(0));
       expect(nd.dtype, equals(int));
@@ -392,7 +392,7 @@ void main() {
     });
 
     test('arange with explicit dtype', () {
-      var nd = NdArray.arange(5, dtype: Float32List);
+      var nd = arange(5, dtype: Float32List);
       expect(nd.shape, equals([5]));
       expect(nd.dtype, equals(double));
       expect(nd.data, isA<Float32List>());
@@ -400,11 +400,11 @@ void main() {
     });
 
     test('arange with zero step throws error', () {
-      expect(() => NdArray.arange(1, stop: 10, step: 0), throwsArgumentError);
+      expect(() => arange(1, stop: 10, step: 0), throwsArgumentError);
     });
 
     test('arange with tricky float step', () {
-      var nd = NdArray.arange(0, stop: 1, step: 0.1);
+      var nd = arange(0, stop: 1, step: 0.1);
       expect(nd.shape, equals([10]));
       expect(nd.dtype, equals(double));
       expect(nd.data, isA<Float64List>());
@@ -413,9 +413,9 @@ void main() {
     });
   }); // End of arange group
 
-  group('NdArray.linspace creation tests', () {
+  group('linspace creation tests', () {
     test('linspace basic (endpoint=true)', () {
-      var nd = NdArray.linspace(0, 1, num: 5);
+      var nd = linspace(0, 1, num: 5);
       expect(nd.shape, equals([5]));
       expect(nd.dtype, equals(double));
       expect(nd.data, isA<Float64List>());
@@ -427,7 +427,7 @@ void main() {
     });
 
     test('linspace endpoint=false', () {
-      var nd = NdArray.linspace(0, 1, num: 5, endpoint: false);
+      var nd = linspace(0, 1, num: 5, endpoint: false);
       expect(nd.shape, equals([5]));
       expect(nd.dtype, equals(double));
       expect(nd.data, isA<Float64List>());
@@ -439,7 +439,7 @@ void main() {
     });
 
     test('linspace with num=1', () {
-      var nd = NdArray.linspace(10, 20, num: 1);
+      var nd = linspace(10, 20, num: 1);
       expect(nd.shape, equals([1]));
       expect(nd.dtype, equals(double));
       expect(nd.data, isA<Float64List>());
@@ -447,7 +447,7 @@ void main() {
     });
 
     test('linspace with num=0', () {
-      var nd = NdArray.linspace(0, 1, num: 0);
+      var nd = linspace(0, 1, num: 0);
       expect(nd.shape, equals([0]));
       expect(nd.size, equals(0));
       expect(nd.dtype, equals(double));
@@ -456,11 +456,11 @@ void main() {
     });
 
     test('linspace with negative num throws error', () {
-      expect(() => NdArray.linspace(0, 1, num: -1), throwsArgumentError);
+      expect(() => linspace(0, 1, num: -1), throwsArgumentError);
     });
 
     test('linspace with explicit dtype (int)', () {
-      var nd = NdArray.linspace(0, 4, num: 5, dtype: Int32List);
+      var nd = linspace(0, 4, num: 5, dtype: Int32List);
       expect(nd.shape, equals([5]));
       expect(nd.dtype, equals(int)); // Check primitive type
       expect(nd.data, isA<Int32List>());
@@ -468,7 +468,7 @@ void main() {
     });
 
     test('linspace with start > stop', () {
-      var nd = NdArray.linspace(1, 0, num: 5);
+      var nd = linspace(1, 0, num: 5);
       expect(nd.shape, equals([5]));
       expect((nd.data as Float64List)[0], closeTo(1.0, 1e-9));
       expect((nd.data as Float64List)[1], closeTo(0.75, 1e-9));

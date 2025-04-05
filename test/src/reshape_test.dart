@@ -5,7 +5,7 @@ import 'dart:typed_data';
 void main() {
   group('NdArray reshape tests', () {
     test('Reshape 1D to 2D', () {
-      var a = NdArray.arange(6); // [0, 1, 2, 3, 4, 5]
+      var a = arange(6); // [0, 1, 2, 3, 4, 5]
       var b = a.reshape([2, 3]);
 
       expect(b.shape, equals([2, 3]));
@@ -24,7 +24,7 @@ void main() {
     });
 
     test('Reshape 2D to 1D', () {
-      var a = NdArray.array([
+      var a = array([
         [0, 1, 2],
         [3, 4, 5]
       ]);
@@ -43,7 +43,7 @@ void main() {
     });
 
     test('Reshape with -1 dimension inference', () {
-      var a = NdArray.arange(12); // Size 12
+      var a = arange(12); // Size 12
       var b = a.reshape([3, -1]); // Infer as [3, 4]
       expect(b.shape, equals([3, 4]));
       expect(b.ndim, equals(2));
@@ -64,7 +64,7 @@ void main() {
     });
 
     test('Reshape scalar (size 1)', () {
-      var a = NdArray.array([5]); // Shape [1]
+      var a = array([5]); // Shape [1]
       var b = a.reshape([]); // Reshape to scalar shape []
       expect(b.shape, equals([]));
       expect(b.ndim, equals(0));
@@ -73,7 +73,7 @@ void main() {
       // operator [] expects List<int>. We can check the first element of data.
       expect((b.data as Int64List)[0], equals(5));
 
-      var c = NdArray.zeros([]); // Create scalar directly
+      var c = zeros([]); // Create scalar directly
       var d = c.reshape([1]); // Reshape scalar to [1]
       expect(d.shape, equals([1]));
       expect(d.ndim, equals(1));
@@ -82,13 +82,13 @@ void main() {
     });
 
     test('Reshape empty array (size 0)', () {
-      var a = NdArray.array([]); // Shape [0]
+      var a = array([]); // Shape [0]
       var b = a.reshape([0, 5]);
       expect(b.shape, equals([0, 5]));
       expect(b.ndim, equals(2));
       expect(b.size, equals(0));
 
-      var c = NdArray.zeros([5, 0]);
+      var c = zeros([5, 0]);
       var d = c.reshape([0]);
       expect(d.shape, equals([0]));
       expect(d.ndim, equals(1));
@@ -101,25 +101,25 @@ void main() {
     });
 
     test('Reshape incompatible size throws error', () {
-      var a = NdArray.arange(6);
+      var a = arange(6);
       expect(() => a.reshape([2, 2]), throwsArgumentError); // Size 4 != 6
       expect(() => a.reshape([7]), throwsArgumentError); // Size 7 != 6
     });
 
     test('Reshape with multiple -1 throws error', () {
-      var a = NdArray.arange(12);
+      var a = arange(12);
       expect(() => a.reshape([-1, -1]), throwsArgumentError);
     });
 
     test('Reshape with invalid dimension size throws error', () {
-      var a = NdArray.arange(12);
+      var a = arange(12);
       expect(() => a.reshape([3, 0]), throwsArgumentError); // Size becomes 0
       expect(() => a.reshape([3, -2]),
           throwsArgumentError); // Invalid negative dim
     });
 
     test('Reshape view modifies original', () {
-      var a = NdArray.arange(4); // [0, 1, 2, 3]
+      var a = arange(4); // [0, 1, 2, 3]
       var b = a.reshape([2, 2]); // [[0, 1], [2, 3]]
       b[[0, 1]] = 99; // Modify view
       expect(a[[1]], equals(99)); // Original should be modified
