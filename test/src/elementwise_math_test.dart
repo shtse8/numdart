@@ -506,4 +506,107 @@ void main() {
       expect(result.toList()[2], greaterThan(1e8));
     });
   }); // End of tan group
+
+  group('NdArray Natural Logarithm (log)', () {
+    test('log of 1D Integer Array', () {
+      var a = NdArray.array([1, 2, 10]);
+      var expected = NdArray.array([math.log(1), math.log(2), math.log(10)],
+          dtype: Float64List);
+      var result = a.log();
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
+      for (int i = 0; i < result.size; i++) {
+        expect(result.toList()[i], closeTo(expected.toList()[i], 1e-9));
+      }
+    });
+
+    test('log of 1D Double Array', () {
+      var a = NdArray.array([1.0, math.e, 10.0, 0.5]);
+      var expected = NdArray.array([0.0, 1.0, math.log(10.0), math.log(0.5)],
+          dtype: Float64List);
+      var result = a.log();
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
+      for (int i = 0; i < result.size; i++) {
+        expect(result.toList()[i], closeTo(expected.toList()[i], 1e-9));
+      }
+    });
+
+    test('log of 2D Array', () {
+      var a = NdArray.array([
+        [1, math.e],
+        [10, 100]
+      ]);
+      var expected = NdArray.array([
+        [0.0, 1.0],
+        [math.log(10), math.log(100)]
+      ], dtype: Float64List);
+      var result = a.log();
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
+      expect(result.toList()[0][0], closeTo(expected.toList()[0][0], 1e-9));
+      expect(result.toList()[0][1], closeTo(expected.toList()[0][1], 1e-9));
+      expect(result.toList()[1][0], closeTo(expected.toList()[1][0], 1e-9));
+      expect(result.toList()[1][1], closeTo(expected.toList()[1][1], 1e-9));
+    });
+
+    test('log of Zero and Negative Numbers', () {
+      var a = NdArray.array([1.0, 0.0, -1.0, -math.e]);
+      var result = a.log();
+      expect(result.shape, equals([4]));
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
+      var listResult = result.toList();
+      expect(listResult[0], closeTo(0.0, 1e-9));
+      expect(listResult[1], equals(double.negativeInfinity));
+      expect(listResult[2].isNaN, isTrue);
+      expect(listResult[3].isNaN, isTrue);
+    });
+
+    test('log of Empty Array', () {
+      var a = NdArray.zeros([0]);
+      var expected = NdArray.zeros([0], dtype: Float64List);
+      var result = a.log();
+      expect(result.shape, equals(expected.shape));
+      expect(result.size, equals(0));
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
+      expect(result.toList(), equals(expected.toList()));
+
+      var c = NdArray.zeros([2, 0], dtype: Int32List);
+      var expected2 = NdArray.zeros([2, 0], dtype: Float64List);
+      var result2 = c.log();
+      expect(result2.shape, equals(expected2.shape));
+      expect(result2.size, equals(0));
+      expect(result2.dtype, equals(double));
+      expect(result2.data, isA<Float64List>());
+      expect(
+          const DeepCollectionEquality()
+              .equals(result2.toList(), expected2.toList()),
+          isTrue);
+    });
+
+    test('log of View', () {
+      var base = NdArray.array([
+        [1, math.e, 10],
+        [100, 0, -5]
+      ]);
+      var view =
+          base[[Slice(null, null), Slice(1, null)]]; // [[e, 10], [0, -5]]
+      var result = view.log();
+      expect(result.shape, equals([2, 2]));
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
+      var listResult = result.toList();
+      expect(listResult[0][0], closeTo(1.0, 1e-9));
+      expect(listResult[0][1], closeTo(math.log(10), 1e-9));
+      expect(listResult[1][0], equals(double.negativeInfinity));
+      expect(listResult[1][1].isNaN, isTrue);
+      // Ensure original base array is unchanged
+      expect(base.toList()[1][2], equals(-5)); // Check a value
+    });
+  }); // End of log group
 }
