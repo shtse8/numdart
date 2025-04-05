@@ -56,6 +56,39 @@ List<int> _calculateBroadcastShape(List<int> shapeA, List<int> shapeB) {
   return resultShape;
 }
 
+/// Determines the resulting TypedData type for an operation between two TypedData types.
+/// Follows promotion rules: int + float -> float, int + int -> int (default Int64List).
+/// Division always results in Float64List.
+/// Determines the resulting primitive data type (int or double) for an operation.
+/// Division always results in double.
+/// Int + Float -> double. Int + Int -> int. Float + Float -> double.
+Type _getResultDataType(Type dtypeA, Type dtypeB, {bool isDivision = false}) {
+  if (isDivision) {
+    return double; // Division always results in double
+  }
+
+  // Check if types are primitive int/double
+  final bool isAPrimitiveFloat = (dtypeA == double);
+  final bool isBPrimitiveFloat = (dtypeB == double);
+
+  // Check if types are TypedData float types (fallback for safety, should ideally use primitive types)
+  final bool isATypedDataFloat =
+      (dtypeA == Float32List || dtypeA == Float64List);
+  final bool isBTypedDataFloat =
+      (dtypeB == Float32List || dtypeB == Float64List);
+
+  if (isAPrimitiveFloat ||
+      isBPrimitiveFloat ||
+      isATypedDataFloat ||
+      isBTypedDataFloat) {
+    // If either operand is float (primitive or TypedData), the result is double
+    return double;
+  } else {
+    // Both operands are int types (primitive or TypedData), result is int
+    return int;
+  }
+}
+
 Type _getDType(TypedData data) {
   if (data is Int8List) return int;
   if (data is Uint8List) return int;
@@ -249,18 +282,18 @@ class NdArray {
       final data = _createTypedData(targetType, 0);
       final elementSize = _getElementSizeInBytes(data);
       final strides = _calculateStrides(shape, elementSize);
-      final actualDtype = _getDType(data);
-      return NdArray._(data, shape, strides, actualDtype, 0, 1, 0);
+      // Pass the primitive dtype to the constructor
+      return NdArray._(data, shape, strides, _getDType(data), 0, 1, 0);
     }
     if (shape.length > 1 && shape.contains(0)) {
       final targetType = dtype ?? Float64List;
       final data = _createTypedData(targetType, 0);
       final elementSize = _getElementSizeInBytes(data);
       final strides = _calculateStrides(shape, elementSize);
-      final actualDtype = _getDType(data);
+      // Pass the primitive dtype to the constructor
       final size = _calculateSize(shape);
       return NdArray._(
-          data, shape, strides, actualDtype, size, shape.length, 0);
+          data, shape, strides, _getDType(data), size, shape.length, 0);
     }
     Type targetType = dtype ?? _inferDataType(list) ?? Float64List;
     List<num> flatList = _flatten<num>(list);
@@ -278,9 +311,9 @@ class NdArray {
     }
     final int elementSize = _getElementSizeInBytes(data);
     final List<int> strides = _calculateStrides(shape, elementSize);
-    final Type actualDtype = _getDType(data);
+    // Pass the primitive dtype to the constructor
     final int ndim = shape.length;
-    return NdArray._(data, shape, strides, actualDtype, size, ndim, 0);
+    return NdArray._(data, shape, strides, _getDType(data), size, ndim, 0);
   }
 
   factory NdArray.zeros(List<int> shape, {Type dtype = Float64List}) {
@@ -295,9 +328,9 @@ class NdArray {
     }
     final int elementSize = _getElementSizeInBytes(data);
     final List<int> strides = _calculateStrides(shape, elementSize);
-    final Type actualDtype = _getDType(data);
+    // Pass the primitive dtype to the constructor
     final int ndim = shape.length;
-    return NdArray._(data, shape, strides, actualDtype, size, ndim, 0);
+    return NdArray._(data, shape, strides, _getDType(data), size, ndim, 0);
   }
 
   factory NdArray.ones(List<int> shape, {Type dtype = Float64List}) {
@@ -314,9 +347,9 @@ class NdArray {
     }
     final int elementSize = _getElementSizeInBytes(data);
     final List<int> strides = _calculateStrides(shape, elementSize);
-    final Type actualDtype = _getDType(data);
+    // Pass the primitive dtype to the constructor
     final int ndim = shape.length;
-    return NdArray._(data, shape, strides, actualDtype, size, ndim, 0);
+    return NdArray._(data, shape, strides, _getDType(data), size, ndim, 0);
   }
 
   factory NdArray.arange(num startOrStop,
@@ -350,8 +383,9 @@ class NdArray {
       final shape = [0];
       final elementSize = _getElementSizeInBytes(emptyData);
       final strides = _calculateStrides(shape, elementSize);
-      final actualDtype = _getDType(emptyData);
-      return NdArray._(emptyData, shape, strides, actualDtype, 0, 1, 0);
+      // Pass the primitive dtype to the constructor
+      return NdArray._(
+          emptyData, shape, strides, _getDType(emptyData), 0, 1, 0);
     }
     TypedData data;
     try {
@@ -367,9 +401,9 @@ class NdArray {
     final shape = [size];
     final int elementSize = _getElementSizeInBytes(data);
     final List<int> strides = _calculateStrides(shape, elementSize);
-    final Type actualDtype = _getDType(data);
+    // Pass the primitive dtype to the constructor
     final int ndim = 1;
-    return NdArray._(data, shape, strides, actualDtype, size, ndim, 0);
+    return NdArray._(data, shape, strides, _getDType(data), size, ndim, 0);
   }
 
   factory NdArray.linspace(
@@ -387,8 +421,9 @@ class NdArray {
       final shape = [0];
       final elementSize = _getElementSizeInBytes(emptyData);
       final strides = _calculateStrides(shape, elementSize);
-      final actualDtype = _getDType(emptyData);
-      return NdArray._(emptyData, shape, strides, actualDtype, 0, 1, 0);
+      // Pass the primitive dtype to the constructor
+      return NdArray._(
+          emptyData, shape, strides, _getDType(emptyData), 0, 1, 0);
     }
     if (num == 1) {
       final data = _createTypedData(dtype, 1);
@@ -396,8 +431,8 @@ class NdArray {
       final shape = [1];
       final elementSize = _getElementSizeInBytes(data);
       final strides = _calculateStrides(shape, elementSize);
-      final actualDtype = _getDType(data);
-      return NdArray._(data, shape, strides, actualDtype, 1, 1, 0);
+      // Pass the primitive dtype to the constructor
+      return NdArray._(data, shape, strides, _getDType(data), 1, 1, 0);
     }
 
     double step;
@@ -423,9 +458,9 @@ class NdArray {
     final shape = [num];
     final int elementSize = _getElementSizeInBytes(data);
     final List<int> strides = _calculateStrides(shape, elementSize);
-    final Type actualDtype = _getDType(data);
+    // Pass the primitive dtype to the constructor
     final int ndim = 1;
-    return NdArray._(data, shape, strides, actualDtype, num, ndim, 0);
+    return NdArray._(data, shape, strides, _getDType(data), num, ndim, 0);
   }
 
   // --- Basic Properties ---
@@ -745,19 +780,13 @@ class NdArray {
       final int resultSize = _calculateSize(broadcastShape);
       final int resultNdim = broadcastShape.length;
 
-      // TODO: Implement proper type promotion based on both operands
-      if (dtype != other.dtype) {
-        throw ArgumentError(
-            'Operands must have the same dtype for addition (got $dtype and ${other.dtype}) - Type promotion not yet implemented.');
-      }
-      Type resultTypedDataType;
-      if (dtype == int) {
-        resultTypedDataType = Int64List;
-      } else if (dtype == double) {
-        resultTypedDataType = Float64List;
-      } else {
-        throw StateError("Unexpected element dtype in operator+: $dtype");
-      }
+      // Determine result primitive data type based on operands' dtypes
+      final Type resultDataType =
+          _getResultDataType(dtype, other.dtype); // Use the new function
+      // Determine the actual TypedData type for the result array
+      final Type resultTypedDataType = (resultDataType == double)
+          ? Float64List
+          : Int64List; // Default int to Int64List
 
       final result = NdArray.zeros(broadcastShape, dtype: resultTypedDataType);
       if (resultSize == 0) return result;
@@ -814,11 +843,17 @@ class NdArray {
         }
         final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
-        // Perform operation
+        // Perform operation and ensure correct type for result
         final dynamic val1 = _getDataItem(data, thisDataIndex);
         final dynamic val2 = _getDataItem(other.data, otherDataIndex);
-        final dynamic sum = val1 + val2;
-        _setDataItem(result.data, resultDataIndex, sum);
+        num sum;
+        if (resultTypedDataType == Float64List) {
+          sum = val1.toDouble() + val2.toDouble();
+        } else {
+          sum = val1.toInt() + val2.toInt();
+        }
+        _setDataItem(result.data, resultDataIndex,
+            sum); // _setDataItem handles final conversion if needed
 
         // Increment multi-dimensional index for broadcast shape
         for (int d = resultNdim - 1; d >= 0; d--) {
@@ -831,13 +866,13 @@ class NdArray {
     } else if (other is num) {
       // --- Array-Scalar Addition ---
       final num scalar = other;
-      Type resultTypedDataType;
-      if (dtype == double || scalar is double) {
-        resultTypedDataType = Float64List;
-      } else if (dtype == int) {
-        resultTypedDataType = Int64List;
+      // Determine result TypedData type based on this.dtype and scalar type
+      final Type resultTypedDataType;
+      final bool isThisFloat = (dtype == double); // Check primitive type
+      if (isThisFloat || scalar is double) {
+        resultTypedDataType = Float64List; // Promote to Float64List
       } else {
-        throw StateError("Unexpected element dtype in operator+: $dtype");
+        resultTypedDataType = Int64List; // Both are int types
       }
       final result = NdArray.zeros(shape, dtype: resultTypedDataType);
       if (size == 0) return result;
@@ -859,8 +894,14 @@ class NdArray {
         }
         final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
+        // Perform operation ensuring correct types
         final dynamic val1 = _getDataItem(data, thisDataIndex);
-        final dynamic sum = val1 + scalar;
+        num sum;
+        if (resultTypedDataType == Float64List) {
+          sum = val1.toDouble() + scalar.toDouble();
+        } else {
+          sum = val1.toInt() + scalar.toInt();
+        }
         _setDataItem(result.data, resultDataIndex, sum);
 
         for (int d = ndim - 1; d >= 0; d--) {
@@ -884,19 +925,13 @@ class NdArray {
       final int resultSize = _calculateSize(broadcastShape);
       final int resultNdim = broadcastShape.length;
 
-      // TODO: Implement proper type promotion based on both operands
-      if (dtype != other.dtype) {
-        throw ArgumentError(
-            'Operands must have the same dtype for subtraction (got $dtype and ${other.dtype}) - Type promotion not yet implemented.');
-      }
-      Type resultTypedDataType;
-      if (dtype == int) {
-        resultTypedDataType = Int64List;
-      } else if (dtype == double) {
-        resultTypedDataType = Float64List;
-      } else {
-        throw StateError("Unexpected element dtype in operator-: $dtype");
-      }
+      // Determine result primitive data type based on operands' dtypes
+      final Type resultDataType =
+          _getResultDataType(dtype, other.dtype); // Use the new function
+      // Determine the actual TypedData type for the result array
+      final Type resultTypedDataType = (resultDataType == double)
+          ? Float64List
+          : Int64List; // Default int to Int64List
 
       final result = NdArray.zeros(broadcastShape, dtype: resultTypedDataType);
       if (resultSize == 0) return result;
@@ -945,11 +980,17 @@ class NdArray {
         }
         final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
-        // Perform operation
+        // Perform operation and ensure correct type for result
         final dynamic val1 = _getDataItem(data, thisDataIndex);
         final dynamic val2 = _getDataItem(other.data, otherDataIndex);
-        final dynamic diff = val1 - val2;
-        _setDataItem(result.data, resultDataIndex, diff);
+        num diff;
+        if (resultTypedDataType == Float64List) {
+          diff = val1.toDouble() - val2.toDouble();
+        } else {
+          diff = val1.toInt() - val2.toInt();
+        }
+        _setDataItem(result.data, resultDataIndex,
+            diff); // _setDataItem handles final conversion if needed
 
         // Increment multi-dimensional index for broadcast shape
         for (int d = resultNdim - 1; d >= 0; d--) {
@@ -962,13 +1003,13 @@ class NdArray {
     } else if (other is num) {
       // --- Array-Scalar Subtraction ---
       final num scalar = other;
-      Type resultTypedDataType;
-      if (dtype == double || scalar is double) {
-        resultTypedDataType = Float64List;
-      } else if (dtype == int) {
-        resultTypedDataType = Int64List;
+      // Determine result TypedData type based on this.dtype and scalar type
+      final Type resultTypedDataType;
+      final bool isThisFloat = (dtype == double); // Check primitive type
+      if (isThisFloat || scalar is double) {
+        resultTypedDataType = Float64List; // Promote to Float64List
       } else {
-        throw StateError("Unexpected element dtype in operator-: $dtype");
+        resultTypedDataType = Int64List; // Both are int types
       }
       final result = NdArray.zeros(shape, dtype: resultTypedDataType);
       if (size == 0) return result;
@@ -990,8 +1031,14 @@ class NdArray {
         }
         final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
+        // Perform operation ensuring correct types
         final dynamic val1 = _getDataItem(data, thisDataIndex);
-        final dynamic diff = val1 - scalar;
+        num diff;
+        if (resultTypedDataType == Float64List) {
+          diff = val1.toDouble() - scalar.toDouble();
+        } else {
+          diff = val1.toInt() - scalar.toInt();
+        }
         _setDataItem(result.data, resultDataIndex, diff);
 
         for (int d = ndim - 1; d >= 0; d--) {
@@ -1015,20 +1062,14 @@ class NdArray {
       final int resultSize = _calculateSize(broadcastShape);
       final int resultNdim = broadcastShape.length;
 
-      // TODO: Implement proper type promotion based on both operands
-      if (dtype != other.dtype) {
-        throw ArgumentError(
-            'Operands must have the same dtype for multiplication (got $dtype and ${other.dtype}) - Type promotion not yet implemented.');
-      }
-      Type resultTypedDataType;
-      if (dtype == int) {
-        resultTypedDataType = Int64List;
-      } else if (dtype == double) {
-        resultTypedDataType = Float64List;
-      } else {
-        throw StateError("Unexpected element dtype in operator*: $dtype");
-      }
-
+      // Determine result TypedData type based on operands' TypedData types
+      // Determine result TypedData type based on operands' TypedData types
+      final Type resultDataType =
+          _getResultDataType(dtype, other.dtype); // Use the new function
+      // Determine the actual TypedData type for the result array
+      final Type resultTypedDataType = (resultDataType == double)
+          ? Float64List
+          : Int64List; // Default int to Int64List
       final result = NdArray.zeros(broadcastShape, dtype: resultTypedDataType);
       if (resultSize == 0) return result;
 
@@ -1079,8 +1120,14 @@ class NdArray {
         // Perform operation
         final dynamic val1 = _getDataItem(data, thisDataIndex);
         final dynamic val2 = _getDataItem(other.data, otherDataIndex);
-        final dynamic product = val1 * val2;
-        _setDataItem(result.data, resultDataIndex, product);
+        final num product; // Use num for intermediate calculation
+        if (resultTypedDataType == Float64List) {
+          product = val1.toDouble() * val2.toDouble();
+        } else {
+          product = val1.toInt() * val2.toInt();
+        }
+        _setDataItem(result.data, resultDataIndex,
+            product); // _setDataItem handles final conversion if needed
 
         // Increment multi-dimensional index for broadcast shape
         for (int d = resultNdim - 1; d >= 0; d--) {
@@ -1093,13 +1140,13 @@ class NdArray {
     } else if (other is num) {
       // --- Array-Scalar Multiplication ---
       final num scalar = other;
-      Type resultTypedDataType;
-      if (dtype == double || scalar is double) {
-        resultTypedDataType = Float64List; // Promote to double
-      } else if (dtype == int) {
-        resultTypedDataType = Int64List; // Stays int
+      // Determine result TypedData type based on this.dtype and scalar type
+      final Type resultTypedDataType;
+      final bool isThisFloat = (dtype == double); // Check primitive type
+      if (isThisFloat || scalar is double) {
+        resultTypedDataType = Float64List; // Promote to Float64List
       } else {
-        throw StateError("Unexpected element dtype in operator*: $dtype");
+        resultTypedDataType = Int64List; // Both are int types
       }
       final result = NdArray.zeros(shape, dtype: resultTypedDataType);
       if (size == 0) return result;
@@ -1121,9 +1168,16 @@ class NdArray {
         }
         final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
 
+        // Perform operation ensuring correct types
         final dynamic val1 = _getDataItem(data, thisDataIndex);
-        final dynamic product = val1 * scalar; // Changed operation
-        _setDataItem(result.data, resultDataIndex, product);
+        num product;
+        if (resultTypedDataType == Float64List) {
+          product = val1.toDouble() * scalar.toDouble();
+        } else {
+          product = val1.toInt() * scalar.toInt();
+        }
+        _setDataItem(result.data, resultDataIndex,
+            product); // _setDataItem handles final conversion if needed
 
         for (int d = ndim - 1; d >= 0; d--) {
           currentIndices[d]++;

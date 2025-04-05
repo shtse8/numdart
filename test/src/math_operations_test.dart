@@ -14,7 +14,7 @@ void main() {
       var expected = NdArray.array([5, 7, 9]);
       var result = a + b;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int)); // Check primitive type
       expect(result.toList(), equals(expected.toList()));
     });
 
@@ -24,7 +24,7 @@ void main() {
       var expected = NdArray.array([5.0, 3.0, 9.9]);
       var result = a + b;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(double)); // Check primitive type
       // Use ListEquality for potential floating point inaccuracies if needed,
       // but direct comparison should work for these simple values.
       expect(result.toList(), equals(expected.toList()));
@@ -45,7 +45,7 @@ void main() {
       ]);
       var result = a + b;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int)); // Check primitive type
       // Use DeepCollectionEquality for nested lists
       expect(
           const DeepCollectionEquality()
@@ -54,76 +54,74 @@ void main() {
     });
 
     test('Addition with Views (Slices)', () {
-      var base = NdArray.arange(10); // [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+      var base =
+          NdArray.arange(10); // [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] dtype=Int64List
       var a = base[[Slice(1, 5)]]; // View [1, 2, 3, 4]
       var b = base[[Slice(5, 9)]]; // View [5, 6, 7, 8]
       var expected = NdArray.array([6, 8, 10, 12]);
       var result = a + b;
 
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int)); // Check primitive type
       expect(result.toList(), equals(expected.toList()));
       // Ensure original base array is unchanged
       expect(base.toList(), equals([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]));
     });
 
     test('Addition of Empty Arrays', () {
-      var a = NdArray.zeros([0]);
-      var b = NdArray.zeros([0]);
+      var a = NdArray.zeros([0]); // Float64List default
+      var b = NdArray.zeros([0]); // Float64List default
       var expected = NdArray.zeros([0]);
       var result = a + b;
       expect(result.shape, equals(expected.shape));
       expect(result.size, equals(0));
+      expect(result.dtype, equals(double));
       expect(result.toList(), equals(expected.toList()));
 
-      var c = NdArray.zeros([2, 0]);
-      var d = NdArray.zeros([2, 0]);
-      var expected2 = NdArray.zeros([2, 0]);
+      var c = NdArray.zeros([2, 0], dtype: Int32List);
+      var d = NdArray.zeros([2, 0], dtype: Int32List);
+      var expected2 = NdArray.zeros([2, 0],
+          dtype: Int64List); // Result promotes to Int64List
       var result2 = c + d;
       expect(result2.shape, equals(expected2.shape));
       expect(result2.size, equals(0));
+      expect(result2.dtype, equals(int));
       expect(
           const DeepCollectionEquality()
               .equals(result2.toList(), expected2.toList()),
           isTrue);
     });
 
-    test('Throws ArgumentError for different dtypes (currently)', () {
-      var a = NdArray.array([1, 2, 3], dtype: Int32List);
-      var b = NdArray.array([4.0, 5.0, 6.0], dtype: Float64List);
-      // Expect error because current implementation requires same dtype
-      expect(() => a + b, throwsArgumentError);
-    });
+    // REMOVED: test('Throws ArgumentError for different dtypes (currently)', () { /* ... */ }); // Now supported
 
     test('Scalar Addition (NdArray + int)', () {
-      var a = NdArray.array([1, 2, 3]);
+      var a = NdArray.array([1, 2, 3]); // Int64List default
       var scalar = 10;
       var expected = NdArray.array([11, 12, 13]);
       var result = a + scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype)); // Should remain int
+      expect(result.dtype, equals(int)); // Stays int
       expect(result.toList(), equals(expected.toList()));
     });
 
     test('Scalar Addition (NdArray + double)', () {
-      var a = NdArray.array([1.0, 2.5, 3.0]);
+      var a = NdArray.array([1.0, 2.5, 3.0]); // Float64List default
       var scalar = 0.5;
       var expected = NdArray.array([1.5, 3.0, 3.5]);
       var result = a + scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype)); // Should remain double
+      expect(result.dtype, equals(double)); // Stays double
       expect(result.toList(), equals(expected.toList()));
     });
 
     test('Scalar Addition with Type Promotion (int Array + double scalar)', () {
-      var a = NdArray.array([1, 2, 3]);
+      var a = NdArray.array([1, 2, 3]); // Int64List default
       var scalar = 0.5;
-      // Expect result to be double
       var expected = NdArray.array([1.5, 2.5, 3.5], dtype: Float64List);
       var result = a + scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(double)); // Check element type
-      expect(result.data, isA<Float64List>()); // Check underlying data type
+      expect(result.dtype, equals(double)); // Promotes to double
+      expect(result.data, isA<Float64List>());
       expect(result.toList(), equals(expected.toList()));
     });
 
@@ -131,7 +129,7 @@ void main() {
       var a = NdArray.array([
         [1, 2],
         [3, 4]
-      ]);
+      ]); // Int64List default
       var scalar = 100;
       var expected = NdArray.array([
         [101, 102],
@@ -139,7 +137,7 @@ void main() {
       ]);
       var result = a + scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int)); // Stays int
       expect(
           const DeepCollectionEquality()
               .equals(result.toList(), expected.toList()),
@@ -147,8 +145,8 @@ void main() {
     });
 
     test('Scalar Addition with View', () {
-      var base = NdArray.arange(6).reshape([2, 3]); // [[0, 1, 2], [3, 4, 5]]
-      var view = base[[Slice(null, null), Slice(1, null)]]; // [[1, 2], [4, 5]]
+      var base = NdArray.arange(6).reshape([2, 3]); // Int64List default
+      var view = base[[Slice(null, null), Slice(1, null)]];
       var scalar = 10;
       var expected = NdArray.array([
         [11, 12],
@@ -156,12 +154,11 @@ void main() {
       ]);
       var result = view + scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int)); // Stays int
       expect(
           const DeepCollectionEquality()
               .equals(result.toList(), expected.toList()),
           isTrue);
-      // Ensure original base is unchanged
       expect(
           base.toList(),
           equals([
@@ -171,12 +168,14 @@ void main() {
     });
 
     test('Scalar Addition with Empty Array', () {
-      var a = NdArray.zeros([0]);
+      var a = NdArray.zeros([0]); // Float64List default
       var scalar = 5;
-      var expected = NdArray.zeros([0]); // Adding to empty results in empty
+      var expected = NdArray.zeros([0]);
       var result = a + scalar;
       expect(result.shape, equals(expected.shape));
       expect(result.size, equals(0));
+      expect(result.dtype,
+          equals(double)); // Should now correctly promote to double
       expect(result.toList(), equals(expected.toList()));
     });
 
@@ -192,15 +191,15 @@ void main() {
       var a = NdArray.array([
         [1, 2, 3],
         [4, 5, 6]
-      ]); // Shape [2, 3]
-      var b = NdArray.array([10, 20, 30]); // Shape [3]
+      ]); // Int64List default
+      var b = NdArray.array([10, 20, 30]); // Int64List default
       var expected = NdArray.array([
         [11, 22, 33],
         [14, 25, 36]
-      ]); // Shape [2, 3]
+      ]);
       var result = a + b;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int)); // Stays int
       expect(
           const DeepCollectionEquality()
               .equals(result.toList(), expected.toList()),
@@ -211,18 +210,18 @@ void main() {
       var a = NdArray.array([
         [1, 2, 3],
         [4, 5, 6]
-      ]); // Shape [2, 3]
+      ]); // Int64List default
       var b = NdArray.array([
         [10],
         [20]
-      ]); // Shape [2, 1]
+      ]); // Int64List default
       var expected = NdArray.array([
         [11, 12, 13],
         [24, 25, 26]
-      ]); // Shape [2, 3]
+      ]);
       var result = a + b;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int)); // Stays int
       expect(
           const DeepCollectionEquality()
               .equals(result.toList(), expected.toList()),
@@ -230,23 +229,19 @@ void main() {
     });
 
     test('Broadcasting Addition: 1D + 2D (Column)', () {
-      var a = NdArray.array(
-          [10, 20]); // Shape [2] -> conceptually [2, 1] for broadcasting
+      var a = NdArray.array([10, 20]); // Int64List default
       var b = NdArray.array([
         [1, 2, 3],
         [4, 5, 6]
-      ]); // Shape [2, 3]
-      // Need to reshape 'a' to make the broadcasting explicit for this case
-      // as 1D + 2D doesn't directly broadcast the 1D as a column in NumPy rules.
-      // Let's test the explicit column case:
+      ]); // Int64List default
       var aCol = a.reshape([2, 1]);
       var expected = NdArray.array([
         [11, 12, 13],
         [24, 25, 26]
-      ]); // Shape [2, 3]
+      ]);
       var result = aCol + b;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int)); // Stays int
       expect(
           const DeepCollectionEquality()
               .equals(result.toList(), expected.toList()),
@@ -263,8 +258,8 @@ void main() {
           [5, 6],
           [7, 8]
         ]
-      ]); // Shape [2, 2, 2]
-      var b = NdArray.array([10, 20]); // Shape [2] -> broadcasts to [1, 1, 2]
+      ]); // Int64List default
+      var b = NdArray.array([10, 20]); // Int64List default
       var expected = NdArray.array([
         [
           [11, 22],
@@ -274,10 +269,10 @@ void main() {
           [15, 26],
           [17, 28]
         ]
-      ]); // Shape [2, 2, 2]
+      ]);
       var result = a + b;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int)); // Stays int
       expect(
           const DeepCollectionEquality()
               .equals(result.toList(), expected.toList()),
@@ -288,66 +283,106 @@ void main() {
       var a = NdArray.array([
         [1, 2],
         [3, 4]
-      ]); // Shape [2, 2]
-      // Test broadcasting with a scalar number (handled by the scalar path)
+      ]); // Int64List default
       var scalar = 10;
       var expected = NdArray.array([
         [11, 12],
         [13, 14]
-      ]); // Shape [2, 2]
-      var result =
-          a + scalar; // Using scalar path implicitly tests scalar broadcasting
+      ]);
+      var result = a + scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int)); // Stays int
       expect(
           const DeepCollectionEquality()
               .equals(result.toList(), expected.toList()),
           isTrue);
-
-      // Note: If a dedicated NdArray.scalar() constructor is added later,
-      // a separate test using `a + NdArray.scalar(10)` could be added
-      // to explicitly test broadcasting with a 0-D NdArray.
     });
 
     test('Throws ArgumentError for incompatible broadcast shapes', () {
       var a = NdArray.array([
         [1, 2, 3],
         [4, 5, 6]
-      ]); // Shape [2, 3]
-      var b = NdArray.array([10, 20]); // Shape [2] -> Incompatible
+      ]);
+      var b = NdArray.array([10, 20]);
       expect(() => a + b, throwsArgumentError);
 
       var c = NdArray.zeros([2, 3, 4]);
-      var d = NdArray.zeros([2, 1, 5]); // Incompatible last dimension
+      var d = NdArray.zeros([2, 1, 5]);
       expect(() => c + d, throwsArgumentError);
     });
 
     test('Broadcasting Addition with Empty Arrays', () {
-      var a = NdArray.zeros([2, 0]);
-      var b = NdArray.zeros([0]); // Broadcasts to [2, 0]
+      var a = NdArray.zeros([2, 0]); // Float64List default
+      var b = NdArray.zeros([0]); // Float64List default
       var expected = NdArray.zeros([2, 0]);
       var result = a + b;
       expect(result.shape, equals(expected.shape));
       expect(result.size, equals(0));
+      expect(result.dtype, equals(double));
 
-      var c = NdArray.zeros([0, 3]);
-      var d = NdArray.zeros([1, 3]); // Broadcasts to [0, 3]
-      var expected2 = NdArray.zeros([0, 3]);
+      var c = NdArray.zeros([0, 3], dtype: Int32List);
+      var d = NdArray.zeros([1, 3], dtype: Int32List);
+      var expected2 =
+          NdArray.zeros([0, 3], dtype: Int64List); // Promotes to Int64List
       var result2 = c + d;
       expect(result2.shape, equals(expected2.shape));
       expect(result2.size, equals(0));
+      expect(result2.dtype, equals(int));
 
-      var e = NdArray.zeros([0, 0]);
-      var f = NdArray.zeros([1, 0]); // Broadcasts to [0, 0]
+      var e = NdArray.zeros([0, 0]); // Float64List default
+      var f = NdArray.zeros([1, 0]); // Float64List default
       var expected3 = NdArray.zeros([0, 0]);
       var result3 = e + f;
       expect(result3.shape, equals(expected3.shape));
       expect(result3.size, equals(0));
+      expect(result3.dtype, equals(double));
 
-      // Incompatible empty broadcast
       var g = NdArray.zeros([2, 0]);
       var h = NdArray.zeros([3, 0]);
       expect(() => g + h, throwsArgumentError);
+    });
+
+    // --- Type Promotion Tests ---
+    test('Type Promotion Addition: int + double', () {
+      var a = NdArray.array([1, 2, 3], dtype: Int32List);
+      var b = NdArray.array([0.5, 1.5, 2.5], dtype: Float64List);
+      var expected = NdArray.array([1.5, 3.5, 5.5], dtype: Float64List);
+      var result = a + b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double)); // Result should be double
+      expect(result.data, isA<Float64List>());
+      expect(result.toList(), equals(expected.toList()));
+    });
+
+    test('Type Promotion Addition: double + int', () {
+      var a = NdArray.array([0.5, 1.5, 2.5], dtype: Float64List);
+      var b = NdArray.array([1, 2, 3], dtype: Int32List);
+      var expected = NdArray.array([1.5, 3.5, 5.5], dtype: Float64List);
+      var result = a + b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double)); // Result should be double
+      expect(result.data, isA<Float64List>());
+      expect(result.toList(), equals(expected.toList()));
+    });
+
+    test('Type Promotion Addition with Broadcasting: int[2,3] + double[3]', () {
+      var a = NdArray.array([
+        [1, 2, 3],
+        [4, 5, 6]
+      ], dtype: Int32List);
+      var b = NdArray.array([0.1, 0.2, 0.3], dtype: Float64List);
+      var expected = NdArray.array([
+        [1.1, 2.2, 3.3],
+        [4.1, 5.2, 6.3]
+      ], dtype: Float64List);
+      var result = a + b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double)); // Result should be double
+      expect(result.data, isA<Float64List>());
+      expect(
+          const DeepCollectionEquality()
+              .equals(result.toList(), expected.toList()),
+          isTrue);
     });
   }); // End of Addition group
 
@@ -359,7 +394,7 @@ void main() {
       var expected = NdArray.array([4, 5, 6]);
       var result = a - b;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int));
       expect(result.toList(), equals(expected.toList()));
     });
 
@@ -369,7 +404,7 @@ void main() {
       var expected = NdArray.array([4.0, 2.5, 3.0]);
       var result = a - b;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(double));
       expect(result.toList(), equals(expected.toList()));
     });
 
@@ -388,7 +423,7 @@ void main() {
       ]);
       var result = a - b;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int));
       expect(
           const DeepCollectionEquality()
               .equals(result.toList(), expected.toList()),
@@ -402,7 +437,7 @@ void main() {
       var expected = NdArray.array([4, 4, 4, 4]);
       var result = a - b;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int));
       expect(result.toList(), equals(expected.toList()));
       expect(base.toList(), equals([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]));
     });
@@ -414,25 +449,23 @@ void main() {
       var result = a - b;
       expect(result.shape, equals(expected.shape));
       expect(result.size, equals(0));
+      expect(result.dtype, equals(double));
       expect(result.toList(), equals(expected.toList()));
 
-      var c = NdArray.zeros([2, 0]);
-      var d = NdArray.zeros([2, 0]);
-      var expected2 = NdArray.zeros([2, 0]);
+      var c = NdArray.zeros([2, 0], dtype: Int32List);
+      var d = NdArray.zeros([2, 0], dtype: Int32List);
+      var expected2 = NdArray.zeros([2, 0], dtype: Int64List);
       var result2 = c - d;
       expect(result2.shape, equals(expected2.shape));
       expect(result2.size, equals(0));
+      expect(result2.dtype, equals(int));
       expect(
           const DeepCollectionEquality()
               .equals(result2.toList(), expected2.toList()),
           isTrue);
     });
 
-    test('Throws ArgumentError for different dtypes (currently)', () {
-      var a = NdArray.array([1, 2, 3], dtype: Int32List);
-      var b = NdArray.array([4.0, 5.0, 6.0], dtype: Float64List);
-      expect(() => a - b, throwsArgumentError);
-    });
+    // REMOVED: test('Throws ArgumentError for different dtypes (currently)', () { /* ... */ }); // Now supported
 
     test('Scalar Subtraction (NdArray - int)', () {
       var a = NdArray.array([11, 12, 13]);
@@ -440,7 +473,7 @@ void main() {
       var expected = NdArray.array([1, 2, 3]);
       var result = a - scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int));
       expect(result.toList(), equals(expected.toList()));
     });
 
@@ -450,7 +483,7 @@ void main() {
       var expected = NdArray.array([1.0, 2.5, 3.0]);
       var result = a - scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(double));
       expect(result.toList(), equals(expected.toList()));
     });
 
@@ -478,7 +511,7 @@ void main() {
       ]);
       var result = a - scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int));
       expect(
           const DeepCollectionEquality()
               .equals(result.toList(), expected.toList()),
@@ -495,7 +528,7 @@ void main() {
       ]);
       var result = view - scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int));
       expect(
           const DeepCollectionEquality()
               .equals(result.toList(), expected.toList()),
@@ -515,6 +548,8 @@ void main() {
       var result = a - scalar;
       expect(result.shape, equals(expected.shape));
       expect(result.size, equals(0));
+      expect(result.dtype,
+          equals(double)); // Should now correctly promote to double
       expect(result.toList(), equals(expected.toList()));
     });
 
@@ -530,15 +565,15 @@ void main() {
       var a = NdArray.array([
         [11, 22, 33],
         [14, 25, 36]
-      ]); // Shape [2, 3]
-      var b = NdArray.array([10, 20, 30]); // Shape [3]
+      ]);
+      var b = NdArray.array([10, 20, 30]);
       var expected = NdArray.array([
         [1, 2, 3],
         [4, 5, 6]
-      ]); // Shape [2, 3]
+      ]);
       var result = a - b;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int));
       expect(
           const DeepCollectionEquality()
               .equals(result.toList(), expected.toList()),
@@ -549,18 +584,18 @@ void main() {
       var a = NdArray.array([
         [11, 12, 13],
         [24, 25, 26]
-      ]); // Shape [2, 3]
+      ]);
       var b = NdArray.array([
         [10],
         [20]
-      ]); // Shape [2, 1]
+      ]);
       var expected = NdArray.array([
         [1, 2, 3],
         [4, 5, 6]
-      ]); // Shape [2, 3]
+      ]);
       var result = a - b;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int));
       expect(
           const DeepCollectionEquality()
               .equals(result.toList(), expected.toList()),
@@ -571,9 +606,32 @@ void main() {
       var a = NdArray.array([
         [1, 2, 3],
         [4, 5, 6]
-      ]); // Shape [2, 3]
-      var b = NdArray.array([10, 20]); // Shape [2] -> Incompatible
+      ]);
+      var b = NdArray.array([10, 20]);
       expect(() => a - b, throwsArgumentError);
+    });
+
+    // --- Type Promotion Tests ---
+    test('Type Promotion Subtraction: int - double', () {
+      var a = NdArray.array([1, 2, 3], dtype: Int32List);
+      var b = NdArray.array([0.5, 0.5, 0.5], dtype: Float64List);
+      var expected = NdArray.array([0.5, 1.5, 2.5], dtype: Float64List);
+      var result = a - b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
+      expect(result.toList(), equals(expected.toList()));
+    });
+
+    test('Type Promotion Subtraction: double - int', () {
+      var a = NdArray.array([1.5, 2.5, 3.5], dtype: Float64List);
+      var b = NdArray.array([1, 1, 1], dtype: Int32List);
+      var expected = NdArray.array([0.5, 1.5, 2.5], dtype: Float64List);
+      var result = a - b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
+      expect(result.toList(), equals(expected.toList()));
     });
   }); // End of Subtraction group
 
@@ -585,7 +643,7 @@ void main() {
       var expected = NdArray.array([4, 10, 18]);
       var result = a * b;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int));
       expect(result.toList(), equals(expected.toList()));
     });
 
@@ -595,7 +653,7 @@ void main() {
       var expected = NdArray.array([4.0, 1.25, 6.0]);
       var result = a * b;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(double));
       expect(result.toList(), equals(expected.toList()));
     });
 
@@ -605,7 +663,7 @@ void main() {
       var expected = NdArray.zeros([3], dtype: Int64List);
       var result = a * b;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int));
       expect(result.toList(), equals(expected.toList()));
 
       var c = NdArray.array([0.0, 5.0, 0.0]);
@@ -613,7 +671,7 @@ void main() {
       var expected2 = NdArray.array([0.0, 0.0, 0.0]);
       var result2 = c * d;
       expect(result2.shape, equals(expected2.shape));
-      expect(result2.dtype, equals(expected2.dtype));
+      expect(result2.dtype, equals(double));
       expect(result2.toList(), equals(expected2.toList()));
     });
 
@@ -632,7 +690,7 @@ void main() {
       ]);
       var result = a * b;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int));
       expect(
           const DeepCollectionEquality()
               .equals(result.toList(), expected.toList()),
@@ -646,7 +704,7 @@ void main() {
       var expected = NdArray.array([5, 12, 21, 32]);
       var result = a * b;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int));
       expect(result.toList(), equals(expected.toList()));
       expect(base.toList(), equals([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]));
     });
@@ -658,25 +716,23 @@ void main() {
       var result = a * b;
       expect(result.shape, equals(expected.shape));
       expect(result.size, equals(0));
+      expect(result.dtype, equals(double));
       expect(result.toList(), equals(expected.toList()));
 
-      var c = NdArray.zeros([2, 0]);
-      var d = NdArray.zeros([2, 0]);
-      var expected2 = NdArray.zeros([2, 0]);
+      var c = NdArray.zeros([2, 0], dtype: Int32List);
+      var d = NdArray.zeros([2, 0], dtype: Int32List);
+      var expected2 = NdArray.zeros([2, 0], dtype: Int64List);
       var result2 = c * d;
       expect(result2.shape, equals(expected2.shape));
       expect(result2.size, equals(0));
+      expect(result2.dtype, equals(int));
       expect(
           const DeepCollectionEquality()
               .equals(result2.toList(), expected2.toList()),
           isTrue);
     });
 
-    test('Throws ArgumentError for different dtypes (currently)', () {
-      var a = NdArray.array([1, 2, 3], dtype: Int32List);
-      var b = NdArray.array([4.0, 5.0, 6.0], dtype: Float64List);
-      expect(() => a * b, throwsArgumentError);
-    });
+    // REMOVED: test('Throws ArgumentError for different dtypes (currently)', () { /* ... */ }); // Now supported
 
     test('Scalar Multiplication (NdArray * int)', () {
       var a = NdArray.array([1, 2, 3]);
@@ -684,7 +740,7 @@ void main() {
       var expected = NdArray.array([10, 20, 30]);
       var result = a * scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int));
       expect(result.toList(), equals(expected.toList()));
     });
 
@@ -694,7 +750,7 @@ void main() {
       var expected = NdArray.array([2.0, 5.0, 6.0]);
       var result = a * scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(double));
       expect(result.toList(), equals(expected.toList()));
     });
 
@@ -723,7 +779,7 @@ void main() {
       ]);
       var result = a * scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int));
       expect(
           const DeepCollectionEquality()
               .equals(result.toList(), expected.toList()),
@@ -740,7 +796,7 @@ void main() {
       ]);
       var result = view * scalar;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int));
       expect(
           const DeepCollectionEquality()
               .equals(result.toList(), expected.toList()),
@@ -760,6 +816,8 @@ void main() {
       var result = a * scalar;
       expect(result.shape, equals(expected.shape));
       expect(result.size, equals(0));
+      expect(result.dtype,
+          equals(double)); // Should now correctly promote to double
       expect(result.toList(), equals(expected.toList()));
     });
 
@@ -775,15 +833,15 @@ void main() {
       var a = NdArray.array([
         [1, 2, 3],
         [4, 5, 6]
-      ]); // Shape [2, 3]
-      var b = NdArray.array([10, 20, 30]); // Shape [3]
+      ]);
+      var b = NdArray.array([10, 20, 30]);
       var expected = NdArray.array([
         [10, 40, 90],
         [40, 100, 180]
-      ]); // Shape [2, 3]
+      ]);
       var result = a * b;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int));
       expect(
           const DeepCollectionEquality()
               .equals(result.toList(), expected.toList()),
@@ -794,18 +852,18 @@ void main() {
       var a = NdArray.array([
         [1, 2, 3],
         [4, 5, 6]
-      ]); // Shape [2, 3]
+      ]);
       var b = NdArray.array([
         [10],
         [20]
-      ]); // Shape [2, 1]
+      ]);
       var expected = NdArray.array([
         [10, 20, 30],
         [80, 100, 120]
-      ]); // Shape [2, 3]
+      ]);
       var result = a * b;
       expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(expected.dtype));
+      expect(result.dtype, equals(int));
       expect(
           const DeepCollectionEquality()
               .equals(result.toList(), expected.toList()),
@@ -816,9 +874,32 @@ void main() {
       var a = NdArray.array([
         [1, 2, 3],
         [4, 5, 6]
-      ]); // Shape [2, 3]
-      var b = NdArray.array([10, 20]); // Shape [2] -> Incompatible
+      ]);
+      var b = NdArray.array([10, 20]);
       expect(() => a * b, throwsArgumentError);
+    });
+
+    // --- Type Promotion Tests ---
+    test('Type Promotion Multiplication: int * double', () {
+      var a = NdArray.array([1, 2, 3], dtype: Int32List);
+      var b = NdArray.array([0.5, 2.0, 1.5], dtype: Float64List);
+      var expected = NdArray.array([0.5, 4.0, 4.5], dtype: Float64List);
+      var result = a * b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
+      expect(result.toList(), equals(expected.toList()));
+    });
+
+    test('Type Promotion Multiplication: double * int', () {
+      var a = NdArray.array([0.5, 2.0, 1.5], dtype: Float64List);
+      var b = NdArray.array([2, 3, 4], dtype: Int32List);
+      var expected = NdArray.array([1.0, 6.0, 6.0], dtype: Float64List);
+      var result = a * b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
+      expect(result.toList(), equals(expected.toList()));
     });
   }); // End of Multiplication group
 
@@ -970,6 +1051,7 @@ void main() {
     });
 
     test('1D Array Division (Int / Double)', () {
+      // Already tests type promotion implicitly
       var a = NdArray.array([10, 20, 30]);
       var b = NdArray.array([2.0, 5.0, 10.0]);
       var expected = NdArray.array([5.0, 4.0, 3.0], dtype: Float64List);
@@ -1072,6 +1154,7 @@ void main() {
     });
 
     test('Array Division with different dtypes (results in double)', () {
+      // Already tests type promotion implicitly
       var a = NdArray.array([10, 20, 30], dtype: Int32List);
       var b = NdArray.array([2.0, 5.0, 10.0], dtype: Float64List);
       var expected = NdArray.array([5.0, 4.0, 3.0], dtype: Float64List);
@@ -1087,8 +1170,8 @@ void main() {
       var a = NdArray.array([
         [10, 40, 90],
         [40, 100, 180]
-      ]); // Shape [2, 3]
-      var b = NdArray.array([10, 20, 30]); // Shape [3]
+      ]); // Int64List default
+      var b = NdArray.array([10, 20, 30]); // Int64List default
       var expected = NdArray.array([
         [1.0, 2.0, 3.0],
         [4.0, 5.0, 6.0]
@@ -1107,11 +1190,11 @@ void main() {
       var a = NdArray.array([
         [10, 20, 30],
         [80, 100, 120]
-      ]); // Shape [2, 3]
+      ]); // Int64List default
       var b = NdArray.array([
         [10],
         [20]
-      ]); // Shape [2, 1]
+      ]); // Int64List default
       var expected = NdArray.array([
         [1.0, 2.0, 3.0],
         [4.0, 5.0, 6.0]
@@ -1130,8 +1213,8 @@ void main() {
       var a = NdArray.array([
         [1.0, -2.0],
         [0.0, 5.0]
-      ]); // Shape [2, 2]
-      var b = NdArray.array([0.0, 1.0]); // Shape [2] -> broadcasts to [1, 2]
+      ]); // Float64List default
+      var b = NdArray.array([0.0, 1.0]); // Float64List default
       var result = a / b; // [[1/0, -2/1], [0/0, 5/1]]
       expect(result.shape, equals([2, 2]));
       expect(result.dtype, equals(double));
@@ -1146,9 +1229,32 @@ void main() {
       var a = NdArray.array([
         [1, 2, 3],
         [4, 5, 6]
-      ]); // Shape [2, 3]
-      var b = NdArray.array([10, 20]); // Shape [2] -> Incompatible
+      ]);
+      var b = NdArray.array([10, 20]);
       expect(() => a / b, throwsArgumentError);
+    });
+
+    // --- Type Promotion Tests (Division always results in double, so these confirm behavior) ---
+    test('Type Promotion Division: int / double (already covered)', () {
+      var a = NdArray.array([10, 20, 30], dtype: Int32List);
+      var b = NdArray.array([2.0, 5.0, 10.0], dtype: Float64List);
+      var expected = NdArray.array([5.0, 4.0, 3.0], dtype: Float64List);
+      var result = a / b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
+      expect(result.toList(), equals(expected.toList()));
+    });
+
+    test('Type Promotion Division: double / int', () {
+      var a = NdArray.array([10.0, 20.0, 30.0], dtype: Float64List);
+      var b = NdArray.array([2, 5, 10], dtype: Int32List);
+      var expected = NdArray.array([5.0, 4.0, 3.0], dtype: Float64List);
+      var result = a / b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
+      expect(result.toList(), equals(expected.toList()));
     });
   }); // End of Division group
 }

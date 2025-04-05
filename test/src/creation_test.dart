@@ -9,7 +9,7 @@ void main() {
       var list = [1, 2, 3, 4];
       var nd = NdArray.array(list);
       expect(nd.shape, equals([4]));
-      expect(nd.dtype, equals(int));
+      expect(nd.dtype, equals(int)); // Already correct
       expect(nd.size, equals(4));
       expect(nd.ndim, equals(1));
       expect(nd.strides, equals([nd.data.elementSizeInBytes]));
@@ -20,7 +20,7 @@ void main() {
       var list = [1.0, 2.5, 3.0];
       var nd = NdArray.array(list);
       expect(nd.shape, equals([3]));
-      expect(nd.dtype, equals(double));
+      expect(nd.dtype, equals(double)); // Already correct
       expect(nd.size, equals(3));
       expect(nd.ndim, equals(1));
       expect(nd.strides, equals([nd.data.elementSizeInBytes]));
@@ -31,7 +31,7 @@ void main() {
       var list = [1, 2.5, 3];
       var nd = NdArray.array(list);
       expect(nd.shape, equals([3]));
-      expect(nd.dtype, equals(double));
+      expect(nd.dtype, equals(double)); // Already correct
       expect(nd.size, equals(3));
       expect(nd.ndim, equals(1));
       expect(nd.strides, equals([nd.data.elementSizeInBytes]));
@@ -47,7 +47,7 @@ void main() {
       var nd = NdArray.array(list);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals([3, 2]));
-      expect(nd.dtype, equals(int));
+      expect(nd.dtype, equals(int)); // Already correct
       expect(nd.size, equals(6));
       expect(nd.ndim, equals(2));
       expect(nd.strides, equals([2 * elementSize, elementSize]));
@@ -62,7 +62,7 @@ void main() {
       var nd = NdArray.array(list, dtype: Float32List);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals([2, 2]));
-      expect(nd.dtype, equals(double));
+      expect(nd.dtype, equals(double)); // Already correct
       expect(nd.data, isA<Float32List>());
       expect(elementSize, equals(4));
       expect(nd.size, equals(4));
@@ -85,7 +85,7 @@ void main() {
       var nd = NdArray.array(list);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals([2, 2, 2]));
-      expect(nd.dtype, equals(int));
+      expect(nd.dtype, equals(int)); // Already correct
       expect(nd.size, equals(8));
       expect(nd.ndim, equals(3));
       expect(
@@ -98,7 +98,7 @@ void main() {
       var nd = NdArray.array(list);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals([0]));
-      expect(nd.dtype, equals(double));
+      expect(nd.dtype, equals(double)); // Already correct
       expect(nd.data, isA<Float64List>());
       expect(nd.size, equals(0));
       expect(nd.ndim, equals(1));
@@ -112,7 +112,7 @@ void main() {
       var nd = NdArray.array(list);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals([1, 0]));
-      expect(nd.dtype, equals(double));
+      expect(nd.dtype, equals(double)); // Already correct
       expect(nd.data, isA<Float64List>());
       expect(nd.size, equals(0));
       expect(nd.ndim, equals(2));
@@ -135,7 +135,7 @@ void main() {
       var nd = NdArray.array(list);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals([2, 0]));
-      expect(nd.dtype, equals(double));
+      expect(nd.dtype, equals(double)); // Already correct
       expect(nd.data, isA<Float64List>());
       expect(nd.size, equals(0));
       expect(nd.ndim, equals(2));
@@ -231,7 +231,7 @@ void main() {
       var nd = NdArray.zeros(shape);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals(shape));
-      expect(nd.dtype, equals(double));
+      expect(nd.dtype, equals(double)); // Already correct
       expect(nd.data, isA<Float64List>());
       expect(nd.size, equals(1)); // Expect size 1 for scalar
       expect(nd.ndim, equals(0));
@@ -278,7 +278,7 @@ void main() {
       var nd = NdArray.ones(shape);
       final elementSize = nd.data.elementSizeInBytes;
       expect(nd.shape, equals(shape));
-      expect(nd.dtype, equals(double));
+      expect(nd.dtype, equals(double)); // Already correct
       expect(nd.data, isA<Float64List>());
       expect(nd.size, equals(0));
       expect(nd.ndim, equals(2));
@@ -318,7 +318,7 @@ void main() {
     test('arange with stop only (double)', () {
       var nd = NdArray.arange(3.0);
       expect(nd.shape, equals([3]));
-      expect(nd.dtype, equals(double));
+      expect(nd.dtype, equals(double)); // Already correct
       expect(nd.data, isA<Float64List>());
       expect(nd.data, equals(Float64List.fromList([0.0, 1.0, 2.0])));
     });
@@ -334,7 +334,7 @@ void main() {
     test('arange with start, stop, and step (int)', () {
       var nd = NdArray.arange(1, stop: 10, step: 2);
       expect(nd.shape, equals([5]));
-      expect(nd.dtype, equals(int));
+      expect(nd.dtype, equals(int)); // Already correct
       expect(nd.data, isA<Int64List>());
       expect(nd.data, equals(Int64List.fromList([1, 3, 5, 7, 9])));
     });
@@ -353,7 +353,7 @@ void main() {
     test('arange with negative step (int)', () {
       var nd = NdArray.arange(5, stop: 1, step: -1);
       expect(nd.shape, equals([4]));
-      expect(nd.dtype, equals(int));
+      expect(nd.dtype, equals(int)); // Already correct
       expect(nd.data, isA<Int64List>());
       expect(nd.data, equals(Int64List.fromList([5, 4, 3, 2])));
     });
@@ -361,7 +361,7 @@ void main() {
     test('arange with negative step (double)', () {
       var nd = NdArray.arange(2.5, stop: 0.0, step: -0.5);
       expect(nd.shape, equals([5]));
-      expect(nd.dtype, equals(double));
+      expect(nd.dtype, equals(double)); // Already correct
       expect(nd.data, isA<Float64List>());
       expect((nd.data as Float64List)[0], closeTo(2.5, 1e-9));
       expect((nd.data as Float64List)[1], closeTo(2.0, 1e-9));
@@ -374,7 +374,7 @@ void main() {
       var nd = NdArray.arange(5, stop: 5);
       expect(nd.shape, equals([0]));
       expect(nd.size, equals(0));
-      expect(nd.dtype, equals(int));
+      expect(nd.dtype, equals(int)); // Already correct
       expect(nd.data, isA<Int64List>());
       expect((nd.data as Int64List).length, equals(0));
       var nd2 = NdArray.arange(6, stop: 5);
@@ -462,7 +462,7 @@ void main() {
     test('linspace with explicit dtype (int)', () {
       var nd = NdArray.linspace(0, 4, num: 5, dtype: Int32List);
       expect(nd.shape, equals([5]));
-      expect(nd.dtype, equals(int));
+      expect(nd.dtype, equals(int)); // Check primitive type
       expect(nd.data, isA<Int32List>());
       expect(nd.data, equals(Int32List.fromList([0, 1, 2, 3, 4])));
     });
