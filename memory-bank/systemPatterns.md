@@ -4,7 +4,7 @@
 
 - **Central `NdArray` Class:** A single class (`lib/src/ndarray.dart`)
   encapsulates the multi-dimensional array data and its properties (shape,
-  strides, dtype, size, ndim, offset).
+  strides, dtype (primitive `int` or `double`), size, ndim, offset).
 - **Top-Level Helper Functions:** Internal logic like calculating strides, size,
   inferring shape/dtype, and data access/manipulation are implemented as
   top-level functions (prefixed with `_`) within `ndarray.dart` for clarity and
@@ -25,9 +25,10 @@
 - **`dart:typed_data`:** The core data buffer (`NdArray.data`) uses Dart's
   `TypedData` (e.g., `Float64List`, `Int64List`) for efficient, contiguous
   memory storage and potential interoperability with native code (FFI).
-- **Type Handling:** The specific `TypedData` type determines the array's
-  element type. Helper functions (`_getDType`, `_setDataItem`, `_getDataItem`)
-  manage type checking and basic conversions.
+- **Type Handling:** The `NdArray.dtype` property stores the primitive type
+  (`int` or `double`). Helper functions (`_getDType`, `_setDataItem`,
+  `_getDataItem`) manage interaction between primitive types and the underlying
+  `TypedData`.
 
 ## 3. Indexing and Slicing
 

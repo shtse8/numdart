@@ -49,8 +49,8 @@ Based on initial discussion, the priority features for the first phases are:
     views).
   - Implement `reshape()` method (returning views).
   - Set up a robust testing framework (`package:test`).
-- **Status:** Mostly complete. Basic slicing has a known bug with negative
-  steps. Slice assignment is pending.
+- **Status:** ✅ Complete. Basic slicing has a known bug with negative steps.
+  Slice assignment (scalar) implemented. `dtype` handling refined.
 
 ```mermaid
 graph TD
@@ -63,13 +63,15 @@ graph TD
     F --> G(Setup Testing);
 ```
 
-### Phase 2: Math & Broadcasting (Next Steps)
+### Phase 2: Math & Broadcasting (In Progress)
 
 - **Tasks:**
   - Implement element-wise mathematical operations (including operator
     overloading).
   - Implement NumPy's broadcasting mechanism.
-  - Implement slice assignment (requires broadcasting).
+  - Implement slice assignment (NdArray value assignment complete, requires
+    broadcasting).
+  - Implement Type Promotion for mixed-type operations.
   - Conduct initial performance analysis and benchmarking.
 - **Goal:** Enable basic numerical computations on arrays.
 
