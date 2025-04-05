@@ -110,3 +110,20 @@ void main() {
   print('Min of c: ${c.min()}'); // Output: 0.0
 }
 ```
+
+## Initial Benchmarks (Microseconds - Lower is Better)
+
+These are preliminary results from `benchmark/creation_benchmark.dart` run on
+[Your System Specs - TODO: Fill in].
+
+```
+Zeros_1D_100_int(RunTime): 0.396 us.
+Zeros_1D_1000_int(RunTime): 1.939 us.
+Zeros_2D_100x100_double(RunTime): 18.245 us.
+Zeros_3D_10x10x100_int(RunTime): 18.721 us.
+Array_1D_100_int(RunTime): 5.963 us.
+Array_2D_100x100_double(RunTime): 1445.146 us.
+```
+
+**Note:** `NdArray.array` from nested lists involves more overhead (shape
+inference, flattening, type checks) compared to `NdArray.zeros`.
