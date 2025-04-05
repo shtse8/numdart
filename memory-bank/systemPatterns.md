@@ -1,3 +1,5 @@
+<!-- Version: 1.1 | Last Updated: 2025-04-05 | Updated By: Cline -->
+
 # System Patterns: NumDart
 
 ## 1. Core Architecture
@@ -5,6 +7,12 @@
 - **Central `NdArray` Class:** A single class (`lib/src/ndarray.dart`)
   encapsulates the multi-dimensional array data and its properties (shape,
   strides, dtype (primitive `int` or `double`), size, ndim, offset).
+- **`elements` Getter:** A public `Iterable<num> get elements` getter provides a
+  standard way to iterate over the array's elements in logical order.
+- **Extension Methods:** Functionality like aggregation (`sum`, `mean`, `max`,
+  `min`) is implemented using extension methods (`NdArrayAggregation` in
+  `lib/src/ndarray_aggregation.dart`) on the `NdArray` class. This keeps the
+  core `NdArray` class focused while allowing modular addition of features.
 - **Top-Level Helper Functions:** Internal logic like calculating strides, size,
   inferring shape/dtype, and data access/manipulation are implemented as
   top-level functions (prefixed with `_`) within `ndarray.dart` for clarity and
@@ -53,6 +61,8 @@
   methods will be needed later.
 - **Error Handling:** Use standard Dart exceptions (`ArgumentError`,
   `RangeError`, `StateError`) for invalid operations or inputs.
+- **Modularity via Extensions:** Use extension methods for adding related groups
+  of functionality (like aggregation) to keep the core `NdArray` class lean.
 
 ## 5. Future Considerations
 

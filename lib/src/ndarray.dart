@@ -40,6 +40,39 @@ class NdArray {
   // --- Basic Properties ---
   int get dimensions => ndim;
 
+  /// Returns an iterable view of the elements in the array.
+  ///
+  /// Iterates through the elements in logical order (row-major by default).
+  Iterable<num> get elements sync* {
+    if (size == 0) return;
+
+    final List<int> currentIndices = List<int>.filled(ndim, 0);
+    final int elementSizeBytes = data.elementSizeInBytes;
+
+    for (int i = 0; i < size; i++) {
+      // Calculate byte offset for the current logical index within the view
+      int byteOffsetWithinView = 0;
+      for (int d = 0; d < ndim; d++) {
+        byteOffsetWithinView += currentIndices[d] * strides[d];
+      }
+      // Calculate the final byte offset in the original data buffer
+      final int finalByteOffset = offsetInBytes + byteOffsetWithinView;
+      // Convert byte offset to data index
+      final int dataIndex = finalByteOffset ~/ elementSizeBytes;
+      yield getDataItem(data, dataIndex);
+
+      // Increment the multi-dimensional logical index
+      for (int d = ndim - 1; d >= 0; d--) {
+        currentIndices[d]++;
+        if (currentIndices[d] < shape[d]) {
+          break; // No carry-over needed for this dimension
+        }
+        currentIndices[d] =
+            0; // Reset current dimension index and carry-over to the next
+      }
+    }
+  }
+
   // --- Factory Constructors ---
   // Defined in ndarray_creation.dart via top-level functions like array(), zeros() etc.
   // Example: static NdArray array(List list, {Type? dtype}) => array(list, dtype: dtype);

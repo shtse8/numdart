@@ -1,6 +1,6 @@
-<!-- Version: 1.4 | Last Updated: 2025-04-05 | Updated By: Cline -->
+<!-- Version: 1.5 | Last Updated: 2025-04-05 | Updated By: Cline -->
 
-# Active Context: NumDart (As of 2025-04-05 ~07:05 Europe/London)
+# Active Context: NumDart (As of 2025-04-05 ~07:13 Europe/London)
 
 ## Current Focus
 
@@ -9,6 +9,19 @@
 
 ## Recent Changes
 
+- **Implemented Aggregation Functions:** Added `sum()`, `mean()`, `max()`,
+  `min()` methods via an extension (`NdArrayAggregation`) in a new file
+  `lib/src/ndarray_aggregation.dart`.
+- **Added `elements` Getter:** Implemented an `Iterable<num> get elements`
+  getter in `NdArray` (`lib/src/ndarray.dart`) to provide public access for
+  iteration, used by aggregation functions.
+- **Added Aggregation Tests:** Created `test/aggregation_test.dart` with tests
+  for `sum()`, `mean()`, `max()`, and `min()`.
+- **Fixed Test File Issues:** Deleted obsolete test runner files
+  (`test/arithmetic/arithmetic_ops_test.dart`,
+  `test/elementwise/elementwise_math_test.dart`) that were causing persistent
+  analyzer errors after refactoring. Corrected slice and scalar creation syntax
+  in `test/aggregation_test.dart`.
 - **Refactored Test Creation Methods:** Updated all test files
   (`creation_test.dart`, `indexing_test.dart`, `reshape_test.dart`, and files in
   `test/arithmetic/` and `test/elementwise/`) to use static `NdArray` creation
@@ -56,8 +69,6 @@
    steps in slicing.
 3. **Scalar Handling:** Review and ensure consistent handling for 0-D (scalar)
    arrays.
-4. **Add More Math Functions:** Implement aggregation functions (e.g., `sum`,
-   `mean`, `max`, `min`). (`sqrt`, `exp`, `sin`, `cos`, `tan`, `log` done).
 
 ## Open Questions / Considerations
 
@@ -66,3 +77,5 @@
   now, assume `int` maps to `Int64List` and `double` maps to `Float64List`.
 - Need robust testing for edge cases in broadcasting, especially with views and
   different strides. (Still relevant)
+- Persistent analyzer errors related to deleted test files might require manual
+  cache clearing or IDE restart by the user.
