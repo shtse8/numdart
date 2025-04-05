@@ -1392,10 +1392,63 @@ class NdArray {
     return result;
   }
 
+  /// Calculates the exponential of each element (e^x).
+  ///
+  /// The result is always a double-precision floating-point array (`Float64List`).
+  ///
+  /// Example:
+  /// ```dart
+  /// var a = NdArray.array([0, 1, 2]);
+  /// var b = a.exp(); // b will be NdArray([1.0, 2.718..., 7.389...], dtype: Float64List)
+  ///
+  /// var c = NdArray.array([0.0, -1.0]);
+  /// var d = c.exp(); // d will be NdArray([1.0, 0.367...], dtype: Float64List)
+  /// ```
+  NdArray exp() {
+    // Result is always double
+    const Type resultTypedDataType = Float64List;
+    final result = NdArray.zeros(shape, dtype: resultTypedDataType);
+
+    if (size == 0) return result;
+
+    final List<int> currentIndices = List<int>.filled(ndim, 0);
+    final int elementSizeBytes = data.elementSizeInBytes;
+    final int resultElementSizeBytes = result.data.elementSizeInBytes;
+
+    for (int i = 0; i < size; i++) {
+      // Calculate byte offset for 'this' array
+      int thisByteOffset = offsetInBytes;
+      for (int d = 0; d < ndim; d++) {
+        thisByteOffset += currentIndices[d] * strides[d];
+      }
+      final int thisDataIndex = thisByteOffset ~/ elementSizeBytes;
+
+      // Calculate byte offset for 'result' array
+      int resultByteOffset = 0;
+      for (int d = 0; d < ndim; d++) {
+        resultByteOffset += currentIndices[d] * result.strides[d];
+      }
+      final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
+
+      // Get value, calculate exp, and set result
+      final dynamic val = _getDataItem(data, thisDataIndex);
+      final double expResult = math.exp(val.toDouble()); // Use dart:math.exp
+      _setDataItem(result.data, resultDataIndex, expResult);
+
+      // Increment logical indices
+      for (int d = ndim - 1; d >= 0; d--) {
+        currentIndices[d]++;
+        if (currentIndices[d] < shape[d]) break;
+        currentIndices[d] = 0;
+      }
+    }
+    return result;
+  }
+
   // --- Private Helper Methods ---
 
   List<int> _getViewDataIndices() {
-    if (size == 0) return [];
+    if (size == 0) return []; // Handle empty view
 
     final List<int> dataIndices = List<int>.filled(size, 0);
     final List<int> currentIndices = List<int>.filled(ndim, 0);
@@ -1403,19 +1456,24 @@ class NdArray {
     int dataIndexCounter = 0;
 
     for (int i = 0; i < size; i++) {
+      // Calculate byte offset for the current logical index within the view
       int byteOffsetWithinView = 0;
       for (int d = 0; d < ndim; d++) {
         byteOffsetWithinView += currentIndices[d] * strides[d];
       }
+      // Calculate the final byte offset in the original data buffer
       final int finalByteOffset = offsetInBytes + byteOffsetWithinView;
+      // Convert byte offset to data index
       dataIndices[dataIndexCounter++] = finalByteOffset ~/ elementSize;
 
+      // Increment the multi-dimensional logical index
       for (int d = ndim - 1; d >= 0; d--) {
         currentIndices[d]++;
         if (currentIndices[d] < shape[d]) {
-          break;
+          break; // No carry-over needed for this dimension
         }
-        currentIndices[d] = 0;
+        currentIndices[d] =
+            0; // Reset current dimension index and carry-over to the next
       }
     }
     return dataIndices;

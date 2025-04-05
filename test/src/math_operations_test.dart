@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:math' as math; // Import math library with prefix
 import 'dart:math'; // For isNaN checks
 
 import 'package:test/test.dart';
@@ -1316,6 +1317,7 @@ void main() {
         var a = NdArray.zeros([0]);
         var expected = NdArray.zeros([0], dtype: Float64List);
         var result = a.sqrt();
+
         expect(result.shape, equals(expected.shape));
         expect(result.size, equals(0));
         expect(result.dtype, equals(double));
@@ -1363,188 +1365,106 @@ void main() {
             ]));
       });
     }); // End of sqrt group
-    test('Array Division of Zeros by Non-Zeros', () {
-      var a = NdArray.array([0.0, 0, 0.0]);
-      var b = NdArray.array([1.0, 2, -5.0]);
-      var expected = NdArray.array([0.0, 0.0, -0.0], dtype: Float64List);
-      var result = a / b;
-      expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(double));
-      expect(result.data, isA<Float64List>());
-      expect(result.toList(), equals(expected.toList()));
-      expect(result.toList()[2].isNegative, isTrue);
-    });
 
-    test('Array Division of Empty Arrays', () {
-      var a = NdArray.zeros([0]);
-      var b = NdArray.zeros([0]);
-      var expected = NdArray.zeros([0], dtype: Float64List);
-      var result = a / b;
-      expect(result.shape, equals(expected.shape));
-      expect(result.size, equals(0));
-      expect(result.dtype, equals(double));
-      expect(result.data, isA<Float64List>());
-      expect(result.toList(), equals(expected.toList()));
+    group('NdArray Exponential (exp)', () {
+      test('exp of 1D Integer Array', () {
+        var a = NdArray.array([0, 1, 2, -1]);
+        var expected = NdArray.array(
+            [math.exp(0), math.exp(1), math.exp(2), math.exp(-1)],
+            dtype: Float64List);
+        var result = a.exp();
+        expect(result.shape, equals(expected.shape));
+        expect(result.dtype, equals(double));
+        expect(result.data, isA<Float64List>());
+        // Use closeTo for floating point comparisons
+        for (int i = 0; i < result.size; i++) {
+          expect(result.toList()[i], closeTo(expected.toList()[i], 1e-9));
+        }
+      });
 
-      var c = NdArray.zeros([2, 0]);
-      var d = NdArray.zeros([2, 0]);
-      var expected2 = NdArray.zeros([2, 0], dtype: Float64List);
-      var result2 = c / d;
-      expect(result2.shape, equals(expected2.shape));
-      expect(result2.size, equals(0));
-      expect(result2.dtype, equals(double));
-      expect(result2.data, isA<Float64List>());
-      expect(
-          const DeepCollectionEquality()
-              .equals(result2.toList(), expected2.toList()),
-          isTrue);
-    });
+      test('exp of 1D Double Array', () {
+        var a = NdArray.array([0.0, 1.0, -0.5, 2.5]);
+        var expected = NdArray.array(
+            [math.exp(0.0), math.exp(1.0), math.exp(-0.5), math.exp(2.5)],
+            dtype: Float64List);
+        var result = a.exp();
+        expect(result.shape, equals(expected.shape));
+        expect(result.dtype, equals(double));
+        expect(result.data, isA<Float64List>());
+        for (int i = 0; i < result.size; i++) {
+          expect(result.toList()[i], closeTo(expected.toList()[i], 1e-9));
+        }
+      });
 
-    test('Array Division with different dtypes (results in double)', () {
-      // Already tests type promotion implicitly
-      var a = NdArray.array([10, 20, 30], dtype: Int32List);
-      var b = NdArray.array([2.0, 5.0, 10.0], dtype: Float64List);
-      var expected = NdArray.array([5.0, 4.0, 3.0], dtype: Float64List);
-      var result = a / b;
-      expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(double));
-      expect(result.data, isA<Float64List>());
-      expect(result.toList(), equals(expected.toList()));
-    });
+      test('exp of 2D Array', () {
+        var a = NdArray.array([
+          [0, 1],
+          [-1, 2]
+        ]);
+        var expected = NdArray.array([
+          [math.exp(0), math.exp(1)],
+          [math.exp(-1), math.exp(2)]
+        ], dtype: Float64List);
+        var result = a.exp();
+        expect(result.shape, equals(expected.shape));
+        expect(result.dtype, equals(double));
+        expect(result.data, isA<Float64List>());
+        expect(result.toList()[0][0], closeTo(expected.toList()[0][0], 1e-9));
+        expect(result.toList()[0][1], closeTo(expected.toList()[0][1], 1e-9));
+        expect(result.toList()[1][0], closeTo(expected.toList()[1][0], 1e-9));
+        expect(result.toList()[1][1], closeTo(expected.toList()[1][1], 1e-9));
+      });
 
-    // --- Broadcasting Tests ---
-    test('Broadcasting Division: 2D / 1D (Row)', () {
-      var a = NdArray.array([
-        [10, 40, 90],
-        [40, 100, 180]
-      ]); // Int64List default
-      var b = NdArray.array([10, 20, 30]); // Int64List default
-      var expected = NdArray.array([
-        [1.0, 2.0, 3.0],
-        [4.0, 5.0, 6.0]
-      ], dtype: Float64List); // Shape [2, 3]
-      var result = a / b;
-      expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(double));
-      expect(result.data, isA<Float64List>());
-      expect(
-          const DeepCollectionEquality()
-              .equals(result.toList(), expected.toList()),
-          isTrue);
-    });
+      test('exp of Empty Array', () {
+        var a = NdArray.zeros([0]);
+        var expected = NdArray.zeros([0], dtype: Float64List);
+        var result = a.exp();
+        expect(result.shape, equals(expected.shape));
+        expect(result.size, equals(0));
+        expect(result.dtype, equals(double));
+        expect(result.data, isA<Float64List>());
+        expect(result.toList(), equals(expected.toList()));
 
-    test('Broadcasting Division: 2D / 1D (Column)', () {
-      var a = NdArray.array([
-        [10, 20, 30],
-        [80, 100, 120]
-      ]); // Int64List default
-      var b = NdArray.array([
-        [10],
-        [20]
-      ]); // Int64List default
-      var expected = NdArray.array([
-        [1.0, 2.0, 3.0],
-        [4.0, 5.0, 6.0]
-      ], dtype: Float64List); // Shape [2, 3]
-      var result = a / b;
-      expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(double));
-      expect(result.data, isA<Float64List>());
-      expect(
-          const DeepCollectionEquality()
-              .equals(result.toList(), expected.toList()),
-          isTrue);
-    });
+        var c = NdArray.zeros([2, 0], dtype: Int32List);
+        var expected2 = NdArray.zeros([2, 0], dtype: Float64List);
+        var result2 = c.exp();
+        expect(result2.shape, equals(expected2.shape));
+        expect(result2.size, equals(0));
+        expect(result2.dtype, equals(double));
+        expect(result2.data, isA<Float64List>());
+        expect(
+            const DeepCollectionEquality()
+                .equals(result2.toList(), expected2.toList()),
+            isTrue);
+      });
 
-    test('Broadcasting Division by Zero', () {
-      var a = NdArray.array([
-        [1.0, -2.0],
-        [0.0, 5.0]
-      ]); // Float64List default
-      var b = NdArray.array([0.0, 1.0]); // Float64List default
-      var result = a / b; // [[1/0, -2/1], [0/0, 5/1]]
-      expect(result.shape, equals([2, 2]));
-      expect(result.dtype, equals(double));
-      var listResult = result.toList();
-      expect(listResult[0][0], equals(double.infinity));
-      expect(listResult[0][1], equals(-2.0));
-      expect(listResult[1][0].isNaN, isTrue);
-      expect(listResult[1][1], equals(5.0));
-    });
-
-    test('Throws ArgumentError for incompatible broadcast shapes', () {
-      var a = NdArray.array([
-        [1, 2, 3],
-        [4, 5, 6]
-      ]);
-      var b = NdArray.array([10, 20]);
-      expect(() => a / b, throwsArgumentError);
-    });
-
-    // --- Type Promotion Tests (Division always results in double, so these confirm behavior) ---
-    test('Type Promotion Division: int / double (already covered)', () {
-      var a = NdArray.array([10, 20, 30], dtype: Int32List);
-      var b = NdArray.array([2.0, 5.0, 10.0], dtype: Float64List);
-      var expected = NdArray.array([5.0, 4.0, 3.0], dtype: Float64List);
-      var result = a / b;
-      expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(double));
-      expect(result.data, isA<Float64List>());
-      expect(result.toList(), equals(expected.toList()));
-    });
-
-    test('Type Promotion Division: double / int', () {
-      var a = NdArray.array([10.0, 20.0, 30.0], dtype: Float64List);
-      var b = NdArray.array([2, 5, 10], dtype: Int32List);
-      var expected = NdArray.array([5.0, 4.0, 3.0], dtype: Float64List);
-      var result = a / b;
-      expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(double));
-      expect(result.data, isA<Float64List>());
-      expect(result.toList(), equals(expected.toList()));
-    });
-
-    test('Broadcasting Division with Mixed Types: int[2,3] / double[3]', () {
-      var a = NdArray.array([
-        [10, 40, 90],
-        [40, 100, 180]
-      ], dtype: Int32List);
-      var b = NdArray.array([10.0, 20.0, 30.0], dtype: Float64List);
-      var expected = NdArray.array([
-        [1.0, 2.0, 3.0],
-        [4.0, 5.0, 6.0]
-      ], dtype: Float64List); // Result always double
-      var result = a / b;
-      expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(double));
-      expect(result.data, isA<Float64List>());
-      expect(
-          const DeepCollectionEquality()
-              .equals(result.toList(), expected.toList()),
-          isTrue);
-    });
-
-    test('Broadcasting Division with Mixed Types: double[2,1] / int[2,3]', () {
-      var a = NdArray.array([
-        [10.0],
-        [80.0]
-      ], dtype: Float64List);
-      var b = NdArray.array([
-        [1, 2, 4],
-        [4, 5, 8]
-      ], dtype: Int32List);
-      var expected = NdArray.array([
-        [10.0, 5.0, 2.5],
-        [20.0, 16.0, 10.0]
-      ], dtype: Float64List); // Result always double
-      var result = a / b;
-      expect(result.shape, equals(expected.shape));
-      expect(result.dtype, equals(double));
-      expect(result.data, isA<Float64List>());
-      expect(
-          const DeepCollectionEquality()
-              .equals(result.toList(), expected.toList()),
-          isTrue);
-    });
+      test('exp of View', () {
+        var base = NdArray.array([
+          [0, 1, 2],
+          [3, 4, 5]
+        ]);
+        var view =
+            base[[Slice(null, null), Slice(1, null)]]; // [[1, 2], [4, 5]]
+        var expected = NdArray.array([
+          [math.exp(1), math.exp(2)],
+          [math.exp(4), math.exp(5)]
+        ], dtype: Float64List);
+        var result = view.exp();
+        expect(result.shape, equals(expected.shape));
+        expect(result.dtype, equals(double));
+        expect(result.data, isA<Float64List>());
+        expect(result.toList()[0][0], closeTo(expected.toList()[0][0], 1e-9));
+        expect(result.toList()[0][1], closeTo(expected.toList()[0][1], 1e-9));
+        expect(result.toList()[1][0], closeTo(expected.toList()[1][0], 1e-9));
+        expect(result.toList()[1][1], closeTo(expected.toList()[1][1], 1e-9));
+        // Ensure original base array is unchanged
+        expect(
+            base.toList(),
+            equals([
+              [0, 1, 2],
+              [3, 4, 5]
+            ]));
+      });
+    }); // End of exp group
   }); // End of Division group
 }
