@@ -384,6 +384,50 @@ void main() {
               .equals(result.toList(), expected.toList()),
           isTrue);
     });
+
+    test('Type Promotion Addition with Broadcasting: double[2,3] + int[3]', () {
+      var a = NdArray.array([
+        [1.1, 2.2, 3.3],
+        [4.1, 5.2, 6.3]
+      ], dtype: Float64List);
+      var b = NdArray.array([1, 2, 3], dtype: Int32List);
+      var expected = NdArray.array([
+        [2.1, 4.2, 6.3],
+        [5.1, 7.2, 9.3]
+      ], dtype: Float64List);
+      var result = a + b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double)); // Result should be double
+      expect(result.data, isA<Float64List>());
+      expect(
+          const DeepCollectionEquality()
+              .equals(result.toList(), expected.toList()),
+          isTrue);
+    });
+
+    test('Type Promotion Addition with Broadcasting: int[2,1] + double[2,3]',
+        () {
+      var a = NdArray.array([
+        [10],
+        [20]
+      ], dtype: Int32List);
+      var b = NdArray.array([
+        [0.1, 0.2, 0.3],
+        [0.4, 0.5, 0.6]
+      ], dtype: Float64List);
+      var expected = NdArray.array([
+        [10.1, 10.2, 10.3],
+        [20.4, 20.5, 20.6]
+      ], dtype: Float64List);
+      var result = a + b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double)); // Result should be double
+      expect(result.data, isA<Float64List>());
+      expect(
+          const DeepCollectionEquality()
+              .equals(result.toList(), expected.toList()),
+          isTrue);
+    });
   }); // End of Addition group
 
   group('NdArray Subtraction (operator-)', () {
@@ -632,6 +676,57 @@ void main() {
       expect(result.dtype, equals(double));
       expect(result.data, isA<Float64List>());
       expect(result.toList(), equals(expected.toList()));
+    });
+
+    test('Type Promotion Subtraction with Broadcasting: int[2,3] - double[3]',
+        () {
+      var a = NdArray.array([
+        [1, 2, 3],
+        [4, 5, 6]
+      ], dtype: Int32List);
+      var b = NdArray.array([0.1, 0.2, 0.3], dtype: Float64List);
+      var expected = NdArray.array([
+        [0.9, 1.8, 2.7],
+        [3.9, 4.8, 5.7]
+      ], dtype: Float64List);
+      var result = a - b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
+      // Use closeTo for floating point comparisons
+      expect(result.toList()[0][0], closeTo(0.9, 1e-9));
+      expect(result.toList()[0][1], closeTo(1.8, 1e-9));
+      expect(result.toList()[0][2], closeTo(2.7, 1e-9));
+      expect(result.toList()[1][0], closeTo(3.9, 1e-9));
+      expect(result.toList()[1][1], closeTo(4.8, 1e-9));
+      expect(result.toList()[1][2], closeTo(5.7, 1e-9));
+    });
+
+    test('Type Promotion Subtraction with Broadcasting: double[2,3] - int[2,1]',
+        () {
+      var a = NdArray.array([
+        [10.1, 10.2, 10.3],
+        [20.4, 20.5, 20.6]
+      ], dtype: Float64List);
+      var b = NdArray.array([
+        [10],
+        [20]
+      ], dtype: Int32List);
+      var expected = NdArray.array([
+        [0.1, 0.2, 0.3],
+        [0.4, 0.5, 0.6]
+      ], dtype: Float64List);
+      var result = a - b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
+      // Use closeTo for floating point comparisons
+      expect(result.toList()[0][0], closeTo(0.1, 1e-9));
+      expect(result.toList()[0][1], closeTo(0.2, 1e-9));
+      expect(result.toList()[0][2], closeTo(0.3, 1e-9));
+      expect(result.toList()[1][0], closeTo(0.4, 1e-9));
+      expect(result.toList()[1][1], closeTo(0.5, 1e-9));
+      expect(result.toList()[1][2], closeTo(0.6, 1e-9));
     });
   }); // End of Subtraction group
 
@@ -901,6 +996,53 @@ void main() {
       expect(result.data, isA<Float64List>());
       expect(result.toList(), equals(expected.toList()));
     });
+
+    test(
+        'Type Promotion Multiplication with Broadcasting: int[2,3] * double[3]',
+        () {
+      var a = NdArray.array([
+        [1, 2, 3],
+        [4, 5, 6]
+      ], dtype: Int32List);
+      var b = NdArray.array([0.5, 2.0, 1.0], dtype: Float64List);
+      var expected = NdArray.array([
+        [0.5, 4.0, 3.0],
+        [2.0, 10.0, 6.0]
+      ], dtype: Float64List);
+      var result = a * b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
+      expect(
+          const DeepCollectionEquality()
+              .equals(result.toList(), expected.toList()),
+          isTrue);
+    });
+
+    test(
+        'Type Promotion Multiplication with Broadcasting: double[2,1] * int[2,3]',
+        () {
+      var a = NdArray.array([
+        [0.5],
+        [2.0]
+      ], dtype: Float64List);
+      var b = NdArray.array([
+        [1, 2, 3],
+        [4, 5, 6]
+      ], dtype: Int32List);
+      var expected = NdArray.array([
+        [0.5, 1.0, 1.5],
+        [8.0, 10.0, 12.0]
+      ], dtype: Float64List);
+      var result = a * b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
+      expect(
+          const DeepCollectionEquality()
+              .equals(result.toList(), expected.toList()),
+          isTrue);
+    });
   }); // End of Multiplication group
 
   group('NdArray Division (operator/)', () {
@@ -1116,6 +1258,111 @@ void main() {
       expect(listResult[4], equals(double.infinity));
     });
 
+    group('NdArray Square Root (sqrt)', () {
+      test('sqrt of 1D Integer Array', () {
+        var a = NdArray.array([0, 1, 4, 9, 16, 25]);
+        var expected =
+            NdArray.array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0], dtype: Float64List);
+        var result = a.sqrt();
+        expect(result.shape, equals(expected.shape));
+        expect(result.dtype, equals(double));
+        expect(result.data, isA<Float64List>());
+        expect(result.toList(), equals(expected.toList()));
+      });
+
+      test('sqrt of 1D Double Array', () {
+        var a = NdArray.array([0.0, 1.0, 2.25, 6.25]);
+        var expected = NdArray.array([0.0, 1.0, 1.5, 2.5], dtype: Float64List);
+        var result = a.sqrt();
+        expect(result.shape, equals(expected.shape));
+        expect(result.dtype, equals(double));
+        expect(result.data, isA<Float64List>());
+        expect(result.toList(), equals(expected.toList()));
+      });
+
+      test('sqrt of 2D Array', () {
+        var a = NdArray.array([
+          [4, 9],
+          [1, 16]
+        ]);
+        var expected = NdArray.array([
+          [2.0, 3.0],
+          [1.0, 4.0]
+        ], dtype: Float64List);
+        var result = a.sqrt();
+        expect(result.shape, equals(expected.shape));
+        expect(result.dtype, equals(double));
+        expect(result.data, isA<Float64List>());
+        expect(
+            const DeepCollectionEquality()
+                .equals(result.toList(), expected.toList()),
+            isTrue);
+      });
+
+      test('sqrt with Negative Numbers (results in NaN)', () {
+        var a = NdArray.array([4.0, -9.0, 16.0, -1.0]);
+        var result = a.sqrt();
+        expect(result.shape, equals([4]));
+        expect(result.dtype, equals(double));
+        expect(result.data, isA<Float64List>());
+        var listResult = result.toList();
+        expect(listResult[0], equals(2.0));
+        expect(listResult[1].isNaN, isTrue);
+        expect(listResult[2], equals(4.0));
+        expect(listResult[3].isNaN, isTrue);
+      });
+
+      test('sqrt of Empty Array', () {
+        var a = NdArray.zeros([0]);
+        var expected = NdArray.zeros([0], dtype: Float64List);
+        var result = a.sqrt();
+        expect(result.shape, equals(expected.shape));
+        expect(result.size, equals(0));
+        expect(result.dtype, equals(double));
+        expect(result.data, isA<Float64List>());
+        expect(result.toList(), equals(expected.toList()));
+
+        var c = NdArray.zeros([2, 0], dtype: Int32List);
+        var expected2 = NdArray.zeros([2, 0], dtype: Float64List);
+        var result2 = c.sqrt();
+        expect(result2.shape, equals(expected2.shape));
+        expect(result2.size, equals(0));
+        expect(result2.dtype, equals(double));
+        expect(result2.data, isA<Float64List>());
+        expect(
+            const DeepCollectionEquality()
+                .equals(result2.toList(), expected2.toList()),
+            isTrue);
+      });
+
+      test('sqrt of View', () {
+        var base = NdArray.array([
+          [1, 4, 9],
+          [16, 25, 36]
+        ]);
+        var view =
+            base[[Slice(null, null), Slice(1, null)]]; // [[4, 9], [25, 36]]
+        var expected = NdArray.array([
+          [2.0, 3.0],
+          [5.0, 6.0]
+        ], dtype: Float64List);
+        var result = view.sqrt();
+        expect(result.shape, equals(expected.shape));
+        expect(result.dtype, equals(double));
+        expect(result.data, isA<Float64List>());
+        expect(
+            const DeepCollectionEquality()
+                .equals(result.toList(), expected.toList()),
+            isTrue);
+        // Ensure original base array is unchanged
+        expect(
+            base.toList(),
+            equals([
+              [1, 4, 9],
+              [16, 25, 36]
+            ]));
+      });
+    }); // End of sqrt group
     test('Array Division of Zeros by Non-Zeros', () {
       var a = NdArray.array([0.0, 0, 0.0]);
       var b = NdArray.array([1.0, 2, -5.0]);
@@ -1255,6 +1502,49 @@ void main() {
       expect(result.dtype, equals(double));
       expect(result.data, isA<Float64List>());
       expect(result.toList(), equals(expected.toList()));
+    });
+
+    test('Broadcasting Division with Mixed Types: int[2,3] / double[3]', () {
+      var a = NdArray.array([
+        [10, 40, 90],
+        [40, 100, 180]
+      ], dtype: Int32List);
+      var b = NdArray.array([10.0, 20.0, 30.0], dtype: Float64List);
+      var expected = NdArray.array([
+        [1.0, 2.0, 3.0],
+        [4.0, 5.0, 6.0]
+      ], dtype: Float64List); // Result always double
+      var result = a / b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
+      expect(
+          const DeepCollectionEquality()
+              .equals(result.toList(), expected.toList()),
+          isTrue);
+    });
+
+    test('Broadcasting Division with Mixed Types: double[2,1] / int[2,3]', () {
+      var a = NdArray.array([
+        [10.0],
+        [80.0]
+      ], dtype: Float64List);
+      var b = NdArray.array([
+        [1, 2, 4],
+        [4, 5, 8]
+      ], dtype: Int32List);
+      var expected = NdArray.array([
+        [10.0, 5.0, 2.5],
+        [20.0, 16.0, 10.0]
+      ], dtype: Float64List); // Result always double
+      var result = a / b;
+      expect(result.shape, equals(expected.shape));
+      expect(result.dtype, equals(double));
+      expect(result.data, isA<Float64List>());
+      expect(
+          const DeepCollectionEquality()
+              .equals(result.toList(), expected.toList()),
+          isTrue);
     });
   }); // End of Division group
 }

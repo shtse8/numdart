@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'dart:math'; // For max function
+import 'dart:math' as math; // For max, sqrt functions
 import 'package:meta/meta.dart';
 import 'package:collection/collection.dart'; // Needed for ListEquality
 import 'slice.dart'; // Import Slice
@@ -34,7 +34,7 @@ int _calculateSize(List<int> shape) {
 List<int> _calculateBroadcastShape(List<int> shapeA, List<int> shapeB) {
   final int ndimA = shapeA.length;
   final int ndimB = shapeB.length;
-  final int ndimMax = max(ndimA, ndimB);
+  final int ndimMax = math.max(ndimA, ndimB);
   final List<int> resultShape = List<int>.filled(ndimMax, 0);
 
   for (int i = 0; i < ndimMax; i++) {
@@ -369,12 +369,12 @@ class NdArray {
     final Type targetType = dtype ?? (isInputInt ? Int64List : Float64List);
     int size = 0;
     if (step > 0 && actualStop > actualStart)
-      size = max(
+      size = math.max(
           0,
           ((actualStop.toDouble() - actualStart.toDouble()) / step.toDouble())
               .ceil());
     else if (step < 0 && actualStop < actualStart)
-      size = max(
+      size = math.max(
           0,
           ((actualStop.toDouble() - actualStart.toDouble()) / step.toDouble())
               .ceil());
@@ -1336,6 +1336,60 @@ class NdArray {
       throw ArgumentError(
           'Unsupported operand type for /: ${other.runtimeType}');
     }
+  }
+
+  /// Calculates the non-negative square root of each element.
+  ///
+  /// The result is always a double-precision floating-point array (`Float64List`).
+  /// If an element is negative, the result for that element will be `NaN`.
+  ///
+  /// Example:
+  /// ```dart
+  /// var a = NdArray.array([4, 9, 16]);
+  /// var b = a.sqrt(); // b will be NdArray([2.0, 3.0, 4.0], dtype: Float64List)
+  ///
+  /// var c = NdArray.array([4.0, -9.0, 16.0]);
+  /// var d = c.sqrt(); // d will be NdArray([2.0, NaN, 4.0], dtype: Float64List)
+  /// ```
+  NdArray sqrt() {
+    // Result is always double
+    const Type resultTypedDataType = Float64List;
+    final result = NdArray.zeros(shape, dtype: resultTypedDataType);
+
+    if (size == 0) return result;
+
+    final List<int> currentIndices = List<int>.filled(ndim, 0);
+    final int elementSizeBytes = data.elementSizeInBytes;
+    final int resultElementSizeBytes = result.data.elementSizeInBytes;
+
+    for (int i = 0; i < size; i++) {
+      // Calculate byte offset for 'this' array
+      int thisByteOffset = offsetInBytes;
+      for (int d = 0; d < ndim; d++) {
+        thisByteOffset += currentIndices[d] * strides[d];
+      }
+      final int thisDataIndex = thisByteOffset ~/ elementSizeBytes;
+
+      // Calculate byte offset for 'result' array
+      int resultByteOffset = 0;
+      for (int d = 0; d < ndim; d++) {
+        resultByteOffset += currentIndices[d] * result.strides[d];
+      }
+      final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
+
+      // Get value, calculate sqrt, and set result
+      final dynamic val = _getDataItem(data, thisDataIndex);
+      final double sqrtResult = math.sqrt(val.toDouble()); // Use dart:math.sqrt
+      _setDataItem(result.data, resultDataIndex, sqrtResult);
+
+      // Increment logical indices
+      for (int d = ndim - 1; d >= 0; d--) {
+        currentIndices[d]++;
+        if (currentIndices[d] < shape[d]) break;
+        currentIndices[d] = 0;
+      }
+    }
+    return result;
   }
 
   // --- Private Helper Methods ---
