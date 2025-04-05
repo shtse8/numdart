@@ -189,6 +189,13 @@ Type? inferDataType(List list) {
 }
 
 TypedData createTypedData(Type type, int length) {
+  // Handle primitive types by mapping to default TypedData types
+  if (identical(type, int))
+    return Int64List(length); // Default int to Int64List
+  if (identical(type, double))
+    return Float64List(length); // Default double to Float64List
+
+  // Handle specific TypedData types
   if (identical(type, Int8List)) return Int8List(length);
   if (identical(type, Uint8List)) return Uint8List(length);
   if (identical(type, Int16List)) return Int16List(length);
@@ -199,6 +206,7 @@ TypedData createTypedData(Type type, int length) {
   if (identical(type, Uint64List)) return Uint64List(length);
   if (identical(type, Float32List)) return Float32List(length);
   if (identical(type, Float64List)) return Float64List(length);
+
   throw ArgumentError("Unsupported dtype for TypedData creation: $type");
 }
 

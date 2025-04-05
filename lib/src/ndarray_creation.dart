@@ -2,7 +2,8 @@ part of 'ndarray.dart';
 
 // --- Factory Constructors (Now Top-Level Functions within the library scope) ---
 
-NdArray array(List list, {Type? dtype}) {
+NdArray _createArray(List list, {Type? dtype}) {
+  // Renamed from array
   final List<int> shape = inferShape(list);
   if (shape.length == 1 && shape[0] == 0) {
     final targetType = dtype ?? Float64List;
@@ -43,7 +44,8 @@ NdArray array(List list, {Type? dtype}) {
   return NdArray._(data, shape, strides, getDType(data), size, ndim, 0);
 }
 
-NdArray zeros(List<int> shape, {Type dtype = Float64List}) {
+NdArray _createZeros(List<int> shape, {Type dtype = Float64List}) {
+  // Renamed from zeros
   if (shape.any((dim) => dim < 0))
     throw ArgumentError('Negative dimensions not allowed.');
   final int size = calculateSize(shape);

@@ -77,9 +77,11 @@ class NdArray {
   // Defined in ndarray_creation.dart via top-level functions like array(), zeros() etc.
   // Example: static NdArray array(List list, {Type? dtype}) => array(list, dtype: dtype);
   // We need static methods in the class to delegate to the part functions
-  static NdArray array(List list, {Type? dtype}) => array(list, dtype: dtype);
+  static NdArray array(List list, {Type? dtype}) => _createArray(list,
+      dtype: dtype); // Call the renamed function from the part file
   static NdArray zeros(List<int> shape, {Type dtype = Float64List}) =>
-      zeros(shape, dtype: dtype);
+      _createZeros(shape,
+          dtype: dtype); // Call the renamed function from the part file
   static NdArray ones(List<int> shape, {Type dtype = Float64List}) =>
       ones(shape, dtype: dtype);
   static NdArray arange(num startOrStop,

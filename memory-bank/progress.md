@@ -1,4 +1,4 @@
-<!-- Version: 1.9 | Last Updated: 2025-04-05 | Updated By: Cline -->
+<!-- Version: 1.10 | Last Updated: 2025-04-05 | Updated By: Cline -->
 
 # Project Progress: NumDart
 
@@ -62,6 +62,14 @@
     `benchmark_harness`.
   - **✅ Setup Benchmarking:** Created `benchmark/` directory, added dependency,
     created initial `creation_benchmark.dart`.
+  - **✅ Fixed Creation Function Recursion:** Resolved stack overflow errors in
+    `NdArray.zeros` and `NdArray.array` static methods.
+  - **✅ Fixed `createTypedData` Helper:** Enabled handling of primitive
+    `int`/`double` types.
+  - **✅ Corrected Test File Calls:** Updated tests to use static `NdArray`
+    methods.
+  - **✅ Ran Initial Benchmarks:** Successfully executed
+    `creation_benchmark.dart`.
 
 ## Known Issues / TODOs
 
@@ -71,6 +79,5 @@
    require manual intervention (cache clear/IDE restart). (Should resolve after
    restart)
 3. **Future:** Consider adding explicit `broadcast_to` function.
-4. **Run/Expand Benchmarks:** Execute initial benchmarks and add more for other
-   operations.
+4. **Expand Benchmarks:** Add more benchmarks for other operations.
 5. **Performance Profiling:** Use DevTools to analyze benchmark results.
