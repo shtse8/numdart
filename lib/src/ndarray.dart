@@ -1496,6 +1496,57 @@ class NdArray {
     return result;
   }
 
+  /// Calculates the cosine of each element.
+  ///
+  /// The result is always a double-precision floating-point array (`Float64List`).
+  /// Input values are interpreted as radians.
+  ///
+  /// Example:
+  /// ```dart
+  /// var a = NdArray.array([0, math.pi / 2, math.pi]);
+  /// var b = a.cos(); // b will be NdArray([1.0, 0.0, -1.0], dtype: Float64List) (approx)
+  /// ```
+  NdArray cos() {
+    // Result is always double
+    const Type resultTypedDataType = Float64List;
+    final result = NdArray.zeros(shape, dtype: resultTypedDataType);
+
+    if (size == 0) return result;
+
+    final List<int> currentIndices = List<int>.filled(ndim, 0);
+    final int elementSizeBytes = data.elementSizeInBytes;
+    final int resultElementSizeBytes = result.data.elementSizeInBytes;
+
+    for (int i = 0; i < size; i++) {
+      // Calculate byte offset for 'this' array
+      int thisByteOffset = offsetInBytes;
+      for (int d = 0; d < ndim; d++) {
+        thisByteOffset += currentIndices[d] * strides[d];
+      }
+      final int thisDataIndex = thisByteOffset ~/ elementSizeBytes;
+
+      // Calculate byte offset for 'result' array
+      int resultByteOffset = 0;
+      for (int d = 0; d < ndim; d++) {
+        resultByteOffset += currentIndices[d] * result.strides[d];
+      }
+      final int resultDataIndex = resultByteOffset ~/ resultElementSizeBytes;
+
+      // Get value, calculate cos, and set result
+      final dynamic val = _getDataItem(data, thisDataIndex);
+      final double cosResult = math.cos(val.toDouble()); // Use dart:math.cos
+      _setDataItem(result.data, resultDataIndex, cosResult);
+
+      // Increment logical indices
+      for (int d = ndim - 1; d >= 0; d--) {
+        currentIndices[d]++;
+        if (currentIndices[d] < shape[d]) break;
+        currentIndices[d] = 0;
+      }
+    }
+    return result;
+  }
+
   // --- Private Helper Methods ---
 
   List<int> _getViewDataIndices() {
