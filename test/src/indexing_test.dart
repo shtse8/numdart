@@ -588,4 +588,27 @@ void main() {
       expect(() => a[[Slice(1, 3)]] = b, throwsArgumentError);
     });
   }); // End of NdArray Slice Assignment group
+
+  test('Assign scalar NdArray to slice (broadcasting)', () {
+    var a = NdArray.zeros([3, 4]);
+    var scalarArray =
+        NdArray.array([7.0]).reshape([]); // Create 1D then reshape to 0D
+
+    // Assign scalar array to a 2x2 slice
+    a[[Slice(1, 3), Slice(1, 3)]] = scalarArray;
+    expect(
+        a.toList(),
+        equals([
+          [0, 0, 0, 0],
+          [0, 7, 7, 0], // Center 2x2 should be 7
+          [0, 7, 7, 0],
+        ]));
+
+    // Assign scalar array to a 1D slice
+    var c = NdArray.zeros([5]);
+    var scalarInt = NdArray.array([99.0])
+        .reshape([]); // Create 1D (now double) then reshape to 0D
+    c[[Slice(1, 4)]] = scalarInt;
+    expect(c.toList(), equals([0, 99, 99, 99, 0]));
+  });
 } // End of main
