@@ -56,67 +56,63 @@ extension NdArrayAggregation on NdArray {
   /// ```
   double mean() {
     if (size == 0) {
-      /// Finds the maximum element in the array.
-      ///
-      /// Returns the maximum value.
-      /// Throws a [StateError] if the array is empty.
-      ///
-      /// Example:
-      /// ```dart
-      /// var a = NdArray.array([1, 5, 2, 4]);
-      /// print(a.max()); // Output: 5
-      ///
-      /// var b = NdArray.array([[1.5, 2.5], [-1.0, 0.5]]);
-      /// print(b.max()); // Output: 2.5
-      /// ```
-      num max() {
-        if (size == 0) {
-          throw StateError('Cannot find the maximum value of an empty array.');
-        }
-
-        num maxValue = elements.first;
-
-        /// Finds the minimum element in the array.
-        ///
-        /// Returns the minimum value.
-        /// Throws a [StateError] if the array is empty.
-        ///
-        /// Example:
-        /// ```dart
-        /// var a = NdArray.array([1, 5, 2, 4]);
-        /// print(a.min()); // Output: 1
-        ///
-        /// var b = NdArray.array([[1.5, 2.5], [-1.0, 0.5]]);
-        /// print(b.min()); // Output: -1.0
-        /// ```
-        num min() {
-          if (size == 0) {
-            throw StateError(
-                'Cannot find the minimum value of an empty array.');
-          }
-
-          num minValue = elements.first;
-          for (final element in elements.skip(1)) {
-            if (element < minValue) {
-              minValue = element;
-            }
-          }
-          return minValue;
-        }
-
-        for (final element in elements.skip(1)) {
-          if (element > maxValue) {
-            maxValue = element;
-          }
-        }
-        return maxValue;
-      }
-
       return double.nan;
     }
     // sum() returns int or double, ensure division results in double
     return sum().toDouble() / size.toDouble();
   }
 
-  // TODO: Implement mean, max, min
+  /// Finds the maximum element in the array.
+  ///
+  /// Returns the maximum value.
+  /// Throws a [StateError] if the array is empty.
+  ///
+  /// Example:
+  /// ```dart
+  /// var a = NdArray.array([1, 5, 2, 4]);
+  /// print(a.max()); // Output: 5
+  ///
+  /// var b = NdArray.array([[1.5, 2.5], [-1.0, 0.5]]);
+  /// print(b.max()); // Output: 2.5
+  /// ```
+  num max() {
+    if (size == 0) {
+      throw StateError('Cannot find the maximum value of an empty array.');
+    }
+
+    num maxValue = elements.first;
+    for (final element in elements.skip(1)) {
+      if (element > maxValue) {
+        maxValue = element;
+      }
+    }
+    return maxValue;
+  }
+
+  /// Finds the minimum element in the array.
+  ///
+  /// Returns the minimum value.
+  /// Throws a [StateError] if the array is empty.
+  ///
+  /// Example:
+  /// ```dart
+  /// var a = NdArray.array([1, 5, 2, 4]);
+  /// print(a.min()); // Output: 1
+  ///
+  /// var b = NdArray.array([[1.5, 2.5], [-1.0, 0.5]]);
+  /// print(b.min()); // Output: -1.0
+  /// ```
+  num min() {
+    if (size == 0) {
+      throw StateError('Cannot find the minimum value of an empty array.');
+    }
+
+    num minValue = elements.first;
+    for (final element in elements.skip(1)) {
+      if (element < minValue) {
+        minValue = element;
+      }
+    }
+    return minValue;
+  }
 }

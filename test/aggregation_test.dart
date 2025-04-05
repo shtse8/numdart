@@ -1,5 +1,6 @@
 import 'package:test/test.dart';
 import 'package:numdart/numdart.dart';
+import 'package:numdart/src/ndarray_aggregation.dart';
 import 'dart:typed_data'; // For dtype comparison
 
 void main() {

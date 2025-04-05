@@ -1,4 +1,4 @@
-<!-- Version: 1.8 | Last Updated: 2025-04-05 | Updated By: Cline -->
+<!-- Version: 1.9 | Last Updated: 2025-04-05 | Updated By: Cline -->
 
 # Project Progress: NumDart
 
@@ -53,12 +53,24 @@
   - **✅ Investigated Slicing Bug:** No active bug found with negative steps.
   - **✅ Improved Scalar Handling:** Added `NdArray.scalar()` constructor and
     updated `toList()` behavior for 0-D arrays.
+  - **✅ Fixed Aggregation Structure:** Corrected structure of `max()`/`min()`
+    in `NdArrayAggregation`.
+  - **✅ Cleaned Obsolete Test Files:** Removed old test runner files.
+
+- **Phase 3 (Flutter Integration & Optimization):** ⏳ In Progress.
+  - **✅ Researched Performance Strategy:** Defined approach using DevTools and
+    `benchmark_harness`.
+  - **✅ Setup Benchmarking:** Created `benchmark/` directory, added dependency,
+    created initial `creation_benchmark.dart`.
 
 ## Known Issues / TODOs
 
 1. **FFI Investigation:** Keep in mind for Phase 3 if performance becomes a
    bottleneck.
-2. **Analyzer Issues:** Persistent errors related to deleted test files and
-   extension methods might require manual intervention (cache clear/IDE
-   restart).
+2. **Analyzer Issues:** Persistent errors related to deleted test files might
+   require manual intervention (cache clear/IDE restart). (Should resolve after
+   restart)
 3. **Future:** Consider adding explicit `broadcast_to` function.
+4. **Run/Expand Benchmarks:** Execute initial benchmarks and add more for other
+   operations.
+5. **Performance Profiling:** Use DevTools to analyze benchmark results.
