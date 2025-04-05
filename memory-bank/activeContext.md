@@ -1,13 +1,20 @@
-# Active Context: NumDart (As of 2025-04-05 ~03:50 Europe/London)
+# Active Context: NumDart (As of 2025-04-05 ~04:04 Europe/London)
 
 ## Current Focus
 
-- **Phase 2 Type Promotion:** Defining rules and starting implementation for
-  operations between arrays of different numeric `dtype`s (e.g., `int` array +
-  `double` array). This is the immediate next task.
+- **Phase 2 Math Functions:** Implement the next common element-wise function:
+  `sin`.
 
 ## Recent Changes
 
+- **Implemented `NdArray.sqrt()`:** Added the square root method and
+  corresponding tests.
+- **Implemented `NdArray.exp()`:** Added the exponential method and
+  corresponding tests.
+- **Verified Type Promotion:** Confirmed that existing arithmetic operators
+  (`+`, `-`, `*`, `/`) correctly handle type promotion between `int` and
+  `double` arrays through added tests. No code changes were needed for the
+  operators themselves.
 - **Refactored `dtype` Handling:** Modified `NdArray` to store primitive `dtype`
   (`int` or `double`) instead of `TypedData` type. Updated all factory
   constructors and relevant tests (`creation_test.dart`,
@@ -25,17 +32,13 @@
 
 ## Next Steps
 
-1. **Implement Type Promotion:**
-   - Modify arithmetic operators (`+`, `-`, `*`, `/`) to handle mixed `dtype`
-     inputs according to promotion rules (e.g., `int + double -> double`).
-   - Ensure the result `NdArray` has the correctly promoted `dtype` and
-     `TypedData`.
-   - Add comprehensive unit tests for mixed-type operations.
-2. **Add More Math Functions:** Implement common element-wise functions (e.g.,
-   `sqrt`, `exp`, `sin`).
-3. **Refine Broadcasting:** Add more complex broadcasting tests.
-4. **Address Slicing Bug:** Investigate and fix the known bug with negative
+1. **Add More Math Functions:** Implement common element-wise functions (e.g.,
+   `sin`, `cos`, `tan`, `log`). (`sqrt`, `exp` done).
+2. **Refine Broadcasting:** Add more complex broadcasting tests.
+3. **Address Slicing Bug:** Investigate and fix the known bug with negative
    steps in slicing.
+4. **Scalar Handling:** Review and ensure consistent handling for 0-D (scalar)
+   arrays.
 
 ## Open Questions / Considerations
 

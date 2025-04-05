@@ -32,26 +32,26 @@
   - NdArray slice assignment (`operator []=`) implemented and tested (including
     broadcasting).
   - Fixed bug related to `dtype` in scalar operations on empty arrays.
+  - **✅ Verified Type Promotion:** Confirmed correct handling in arithmetic
+    operators.
+  - **✅ Implemented `NdArray.sqrt()`:** Element-wise square root.
+  - **✅ Implemented `NdArray.exp()`:** Element-wise exponential.
 
 ## Known Issues / TODOs
 
-1. **Implement Type Promotion:**
-   - **TODO:** Define rules and implement logic for array-array operations
-     between different numeric dtypes (e.g., `int` array + `double` array).
-     **(Next Major Task)**
-2. **Add More Math Functions:**
-   - **TODO:** Implement common element-wise functions (e.g., `sqrt`, `exp`,
-     `sin`).
+1. **Add More Math Functions:**
+   - **TODO:** Implement common element-wise functions (e.g., `sin`, `cos`,
+     `tan`, `log`). (`sqrt`, `exp` done).
    - **TODO:** Implement aggregation functions (e.g., `sum`, `mean`, `max`,
      `min`).
-3. **Refine Broadcasting:**
+2. **Refine Broadcasting:**
    - **TODO:** Add more complex broadcasting tests (views, varied dimensions).
    - **TODO:** Consider if explicit `broadcast_to` function is needed.
-4. **Scalar Handling:**
+3. **Scalar Handling:**
    - **TODO:** Review and ensure consistent handling for 0-D (scalar) arrays
      across all functions (especially `toList()`). Consider adding
      `NdArray.scalar()` constructor or improving `NdArray.array()` for scalars.
-5. **Slicing Bug:**
+4. **Slicing Bug:**
    - **TODO:** Address known bug with negative steps in slicing.
-6. **FFI Investigation:** Keep in mind for Phase 3 if performance becomes a
+5. **FFI Investigation:** Keep in mind for Phase 3 if performance becomes a
    bottleneck.
