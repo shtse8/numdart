@@ -1,19 +1,32 @@
-part of 'elementwise_math_test.dart';
+import 'dart:typed_data';
+import 'dart:math' as math; // Import math library with prefix
+import 'package:test/test.dart';
+import 'package:numdart/numdart.dart'; // Import main library
+import 'package:collection/collection.dart';
 
-void _testExpGroup() {
+// No 'part of' needed
+
+void main() {
+  // Main entry point for this test file
   group('NdArray Exponential (exp)', () {
-    _testExp1DInteger();
-    _testExp1DDouble();
-    _testExp2D();
-    _testExpEmptyArray();
-    _testExpView();
+    // Call individual test functions directly within the group
+    testExp1DInteger();
+    testExp1DDouble();
+    testExp2D();
+    testExpEmptyArray();
+    testExpView();
   });
 }
 
-void _testExp1DInteger() {
+void testExp1DInteger() {
   test('exp of 1D Integer Array', () {
-    var a = array([0, 1, 2, -1]);
-    var expected = array([math.exp(0), math.exp(1), math.exp(2), math.exp(-1)],
+    var a = NdArray.array([0, 1, 2, -1]); // Use static method
+    var expected = NdArray.array([
+      math.exp(0),
+      math.exp(1),
+      math.exp(2),
+      math.exp(-1)
+    ], // Use static method
         dtype: Float64List);
     var result = a.exp();
     expect(result.shape, equals(expected.shape));
@@ -26,10 +39,10 @@ void _testExp1DInteger() {
   });
 }
 
-void _testExp1DDouble() {
+void testExp1DDouble() {
   test('exp of 1D Double Array', () {
-    var a = array([0.0, 1.0, -0.5, 2.5]);
-    var expected = array(
+    var a = NdArray.array([0.0, 1.0, -0.5, 2.5]); // Use static method
+    var expected = NdArray.array(// Use static method
         [math.exp(0.0), math.exp(1.0), math.exp(-0.5), math.exp(2.5)],
         dtype: Float64List);
     var result = a.exp();
@@ -42,13 +55,15 @@ void _testExp1DDouble() {
   });
 }
 
-void _testExp2D() {
+void testExp2D() {
   test('exp of 2D Array', () {
-    var a = array([
+    var a = NdArray.array([
+      // Use static method
       [0, 1],
       [-1, 2]
     ]);
-    var expected = array([
+    var expected = NdArray.array([
+      // Use static method
       [math.exp(0), math.exp(1)],
       [math.exp(-1), math.exp(2)]
     ], dtype: Float64List);
@@ -63,10 +78,10 @@ void _testExp2D() {
   });
 }
 
-void _testExpEmptyArray() {
+void testExpEmptyArray() {
   test('exp of Empty Array', () {
-    var a = zeros([0]);
-    var expected = zeros([0], dtype: Float64List);
+    var a = NdArray.zeros([0]); // Use static method
+    var expected = NdArray.zeros([0], dtype: Float64List); // Use static method
     var result = a.exp();
     expect(result.shape, equals(expected.shape));
     expect(result.size, equals(0));
@@ -74,8 +89,9 @@ void _testExpEmptyArray() {
     expect(result.data, isA<Float64List>());
     expect(result.toList(), equals(expected.toList()));
 
-    var c = zeros([2, 0], dtype: Int32List);
-    var expected2 = zeros([2, 0], dtype: Float64List);
+    var c = NdArray.zeros([2, 0], dtype: Int32List); // Use static method
+    var expected2 =
+        NdArray.zeros([2, 0], dtype: Float64List); // Use static method
     var result2 = c.exp();
     expect(result2.shape, equals(expected2.shape));
     expect(result2.size, equals(0));
@@ -88,14 +104,16 @@ void _testExpEmptyArray() {
   });
 }
 
-void _testExpView() {
+void testExpView() {
   test('exp of View', () {
-    var base = array([
+    var base = NdArray.array([
+      // Use static method
       [0, 1, 2],
       [3, 4, 5]
     ]);
     var view = base[[Slice(null, null), Slice(1, null)]]; // [[1, 2], [4, 5]]
-    var expected = array([
+    var expected = NdArray.array([
+      // Use static method
       [math.exp(1), math.exp(2)],
       [math.exp(4), math.exp(5)]
     ], dtype: Float64List);

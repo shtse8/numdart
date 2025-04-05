@@ -1,4 +1,4 @@
-<!-- Version: 1.1 | Last Updated: 2025-04-05 | Updated By: Cline -->
+<!-- Version: 1.3 | Last Updated: 2025-04-05 | Updated By: Cline -->
 
 # Project Progress: NumDart
 
@@ -41,14 +41,15 @@
   - **✅ Implemented `NdArray.sin()`:** Element-wise sine.
   - **✅ Implemented `NdArray.cos()`:** Element-wise cosine.
   - **✅ Implemented `NdArray.tan()`:** Element-wise tangent.
+  - **✅ Implemented `NdArray.log()`:** Element-wise natural logarithm.
+  - **✅ Refactored Tests:** Updated all creation and math operation tests to
+    use static `NdArray` methods and removed obsolete `part` files.
 
 ## Known Issues / TODOs
 
 1. **Add More Math Functions:**
-   - **TODO:** Implement common element-wise functions (e.g., `log`). (`sqrt`,
-     `exp`, `sin`, `cos`, `tan` done).
    - **TODO:** Implement aggregation functions (e.g., `sum`, `mean`, `max`,
-     `min`).
+     `min`). (`sqrt`, `exp`, `sin`, `cos`, `tan`, `log` done).
 2. **Refine Broadcasting:**
    - **TODO:** Add more complex broadcasting tests (views, varied dimensions).
    - **TODO:** Consider if explicit `broadcast_to` function is needed.

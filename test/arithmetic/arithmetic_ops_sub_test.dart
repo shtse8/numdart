@@ -1,35 +1,41 @@
-part of 'arithmetic_ops_test.dart';
+import 'dart:typed_data';
+import 'package:test/test.dart';
+import 'package:numdart/numdart.dart'; // Import main library
+import 'package:collection/collection.dart';
 
-void _testSubtractionGroup() {
+// No 'part of' needed
+
+void main() {
+  // Main entry point for this test file
   group('NdArray Subtraction (operator-)', () {
-    // --- Existing Tests ---
-    _testSubtraction1DInteger();
-    _testSubtraction1DDouble();
-    _testSubtraction2DInteger();
-    _testSubtractionWithViews();
-    _testSubtractionOfEmptyArrays();
-    _testScalarSubtractionInt();
-    _testScalarSubtractionDouble();
-    _testScalarSubtractionWithTypePromotion();
-    _testScalarSubtractionWith2DArray();
-    _testScalarSubtractionWithView();
-    _testScalarSubtractionWithEmptyArray();
-    _testThrowsArgumentErrorForInvalidScalarTypeSubtraction();
-    _testBroadcastingSubtractionRow();
-    _testBroadcastingSubtractionColumn();
-    _testThrowsArgumentErrorForIncompatibleBroadcastShapesSubtraction();
-    _testTypePromotionSubtractionIntDouble();
-    _testTypePromotionSubtractionDoubleInt();
-    _testTypePromotionSubtractionWithBroadcastingIntDouble();
-    _testTypePromotionSubtractionWithBroadcastingDoubleInt();
+    // Call individual test functions directly within the group
+    testSubtraction1DInteger();
+    testSubtraction1DDouble();
+    testSubtraction2DInteger();
+    testSubtractionWithViews();
+    testSubtractionOfEmptyArrays();
+    testScalarSubtractionInt();
+    testScalarSubtractionDouble();
+    testScalarSubtractionWithTypePromotion();
+    testScalarSubtractionWith2DArray();
+    testScalarSubtractionWithView();
+    testScalarSubtractionWithEmptyArray();
+    testThrowsArgumentErrorForInvalidScalarTypeSubtraction();
+    testBroadcastingSubtractionRow();
+    testBroadcastingSubtractionColumn();
+    testThrowsArgumentErrorForIncompatibleBroadcastShapesSubtraction();
+    testTypePromotionSubtractionIntDouble();
+    testTypePromotionSubtractionDoubleInt();
+    testTypePromotionSubtractionWithBroadcastingIntDouble();
+    testTypePromotionSubtractionWithBroadcastingDoubleInt();
   });
 }
 
-void _testSubtraction1DInteger() {
+void testSubtraction1DInteger() {
   test('1D Integer Subtraction', () {
-    var a = array([5, 7, 9]);
-    var b = array([1, 2, 3]);
-    var expected = array([4, 5, 6]);
+    var a = NdArray.array([5, 7, 9]); // Use static method
+    var b = NdArray.array([1, 2, 3]); // Use static method
+    var expected = NdArray.array([4, 5, 6]); // Use static method
     var result = a - b;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(int));
@@ -37,11 +43,11 @@ void _testSubtraction1DInteger() {
   });
 }
 
-void _testSubtraction1DDouble() {
+void testSubtraction1DDouble() {
   test('1D Double Subtraction', () {
-    var a = array([5.0, 3.0, 9.9]);
-    var b = array([1.0, 0.5, 6.9]);
-    var expected = array([4.0, 2.5, 3.0]);
+    var a = NdArray.array([5.0, 3.0, 9.9]); // Use static method
+    var b = NdArray.array([1.0, 0.5, 6.9]); // Use static method
+    var expected = NdArray.array([4.0, 2.5, 3.0]); // Use static method
     var result = a - b;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
@@ -49,17 +55,20 @@ void _testSubtraction1DDouble() {
   });
 }
 
-void _testSubtraction2DInteger() {
+void testSubtraction2DInteger() {
   test('2D Integer Subtraction', () {
-    var a = array([
+    var a = NdArray.array([
+      // Use static method
       [6, 8],
       [10, 12]
     ]);
-    var b = array([
+    var b = NdArray.array([
+      // Use static method
       [5, 6],
       [7, 8]
     ]);
-    var expected = array([
+    var expected = NdArray.array([
+      // Use static method
       [1, 2],
       [3, 4]
     ]);
@@ -73,12 +82,12 @@ void _testSubtraction2DInteger() {
   });
 }
 
-void _testSubtractionWithViews() {
+void testSubtractionWithViews() {
   test('Subtraction with Views (Slices)', () {
-    var base = arange(10);
+    var base = NdArray.arange(10); // Use static method
     var a = base[[Slice(5, 9)]];
     var b = base[[Slice(1, 5)]];
-    var expected = array([4, 4, 4, 4]);
+    var expected = NdArray.array([4, 4, 4, 4]); // Use static method
     var result = a - b;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(int));
@@ -87,20 +96,21 @@ void _testSubtractionWithViews() {
   });
 }
 
-void _testSubtractionOfEmptyArrays() {
+void testSubtractionOfEmptyArrays() {
   test('Subtraction of Empty Arrays', () {
-    var a = zeros([0]);
-    var b = zeros([0]);
-    var expected = zeros([0]);
+    var a = NdArray.zeros([0]); // Use static method
+    var b = NdArray.zeros([0]); // Use static method
+    var expected = NdArray.zeros([0]); // Use static method
     var result = a - b;
     expect(result.shape, equals(expected.shape));
     expect(result.size, equals(0));
     expect(result.dtype, equals(double));
     expect(result.toList(), equals(expected.toList()));
 
-    var c = zeros([2, 0], dtype: Int32List);
-    var d = zeros([2, 0], dtype: Int32List);
-    var expected2 = zeros([2, 0], dtype: Int64List);
+    var c = NdArray.zeros([2, 0], dtype: Int32List); // Use static method
+    var d = NdArray.zeros([2, 0], dtype: Int32List); // Use static method
+    var expected2 =
+        NdArray.zeros([2, 0], dtype: Int64List); // Use static method
     var result2 = c - d;
     expect(result2.shape, equals(expected2.shape));
     expect(result2.size, equals(0));
@@ -112,11 +122,11 @@ void _testSubtractionOfEmptyArrays() {
   });
 }
 
-void _testScalarSubtractionInt() {
+void testScalarSubtractionInt() {
   test('Scalar Subtraction (NdArray - int)', () {
-    var a = array([11, 12, 13]);
+    var a = NdArray.array([11, 12, 13]); // Use static method
     var scalar = 10;
-    var expected = array([1, 2, 3]);
+    var expected = NdArray.array([1, 2, 3]); // Use static method
     var result = a - scalar;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(int));
@@ -124,11 +134,11 @@ void _testScalarSubtractionInt() {
   });
 }
 
-void _testScalarSubtractionDouble() {
+void testScalarSubtractionDouble() {
   test('Scalar Subtraction (NdArray - double)', () {
-    var a = array([1.5, 3.0, 3.5]);
+    var a = NdArray.array([1.5, 3.0, 3.5]); // Use static method
     var scalar = 0.5;
-    var expected = array([1.0, 2.5, 3.0]);
+    var expected = NdArray.array([1.0, 2.5, 3.0]); // Use static method
     var result = a - scalar;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
@@ -136,12 +146,13 @@ void _testScalarSubtractionDouble() {
   });
 }
 
-void _testScalarSubtractionWithTypePromotion() {
+void testScalarSubtractionWithTypePromotion() {
   test('Scalar Subtraction with Type Promotion (int Array - double scalar)',
       () {
-    var a = array([1, 2, 3]);
+    var a = NdArray.array([1, 2, 3]); // Use static method
     var scalar = 0.5;
-    var expected = array([0.5, 1.5, 2.5], dtype: Float64List);
+    var expected =
+        NdArray.array([0.5, 1.5, 2.5], dtype: Float64List); // Use static method
     var result = a - scalar;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
@@ -150,14 +161,16 @@ void _testScalarSubtractionWithTypePromotion() {
   });
 }
 
-void _testScalarSubtractionWith2DArray() {
+void testScalarSubtractionWith2DArray() {
   test('Scalar Subtraction with 2D Array', () {
-    var a = array([
+    var a = NdArray.array([
+      // Use static method
       [101, 102],
       [103, 104]
     ]);
     var scalar = 100;
-    var expected = array([
+    var expected = NdArray.array([
+      // Use static method
       [1, 2],
       [3, 4]
     ]);
@@ -171,12 +184,13 @@ void _testScalarSubtractionWith2DArray() {
   });
 }
 
-void _testScalarSubtractionWithView() {
+void testScalarSubtractionWithView() {
   test('Scalar Subtraction with View', () {
-    var base = arange(6).reshape([2, 3]);
+    var base = NdArray.arange(6).reshape([2, 3]); // Use static method
     var view = base[[Slice(null, null), Slice(1, null)]];
     var scalar = 1;
-    var expected = array([
+    var expected = NdArray.array([
+      // Use static method
       [0, 1],
       [3, 4]
     ]);
@@ -196,11 +210,11 @@ void _testScalarSubtractionWithView() {
   });
 }
 
-void _testScalarSubtractionWithEmptyArray() {
+void testScalarSubtractionWithEmptyArray() {
   test('Scalar Subtraction with Empty Array', () {
-    var a = zeros([0]);
+    var a = NdArray.zeros([0]); // Use static method
     var scalar = 5;
-    var expected = zeros([0]);
+    var expected = NdArray.zeros([0]); // Use static method
     var result = a - scalar;
     expect(result.shape, equals(expected.shape));
     expect(result.size, equals(0));
@@ -210,23 +224,25 @@ void _testScalarSubtractionWithEmptyArray() {
   });
 }
 
-void _testThrowsArgumentErrorForInvalidScalarTypeSubtraction() {
+void testThrowsArgumentErrorForInvalidScalarTypeSubtraction() {
   test('Throws ArgumentError for invalid scalar type', () {
-    var a = array([1, 2, 3]);
+    var a = NdArray.array([1, 2, 3]); // Use static method
     expect(() => a - 'hello', throwsArgumentError);
     expect(() => a - true, throwsArgumentError);
     expect(() => a - null, throwsArgumentError);
   });
 }
 
-void _testBroadcastingSubtractionRow() {
+void testBroadcastingSubtractionRow() {
   test('Broadcasting Subtraction: 2D - 1D (Row)', () {
-    var a = array([
+    var a = NdArray.array([
+      // Use static method
       [11, 22, 33],
       [14, 25, 36]
     ]);
-    var b = array([10, 20, 30]);
-    var expected = array([
+    var b = NdArray.array([10, 20, 30]); // Use static method
+    var expected = NdArray.array([
+      // Use static method
       [1, 2, 3],
       [4, 5, 6]
     ]);
@@ -240,17 +256,20 @@ void _testBroadcastingSubtractionRow() {
   });
 }
 
-void _testBroadcastingSubtractionColumn() {
+void testBroadcastingSubtractionColumn() {
   test('Broadcasting Subtraction: 2D - 1D (Column)', () {
-    var a = array([
+    var a = NdArray.array([
+      // Use static method
       [11, 12, 13],
       [24, 25, 26]
     ]);
-    var b = array([
+    var b = NdArray.array([
+      // Use static method
       [10],
       [20]
     ]);
-    var expected = array([
+    var expected = NdArray.array([
+      // Use static method
       [1, 2, 3],
       [4, 5, 6]
     ]);
@@ -264,22 +283,25 @@ void _testBroadcastingSubtractionColumn() {
   });
 }
 
-void _testThrowsArgumentErrorForIncompatibleBroadcastShapesSubtraction() {
+void testThrowsArgumentErrorForIncompatibleBroadcastShapesSubtraction() {
   test('Throws ArgumentError for incompatible broadcast shapes', () {
-    var a = array([
+    var a = NdArray.array([
+      // Use static method
       [1, 2, 3],
       [4, 5, 6]
     ]);
-    var b = array([10, 20]);
+    var b = NdArray.array([10, 20]); // Use static method
     expect(() => a - b, throwsArgumentError);
   });
 }
 
-void _testTypePromotionSubtractionIntDouble() {
+void testTypePromotionSubtractionIntDouble() {
   test('Type Promotion Subtraction: int - double', () {
-    var a = array([1, 2, 3], dtype: Int32List);
-    var b = array([0.5, 0.5, 0.5], dtype: Float64List);
-    var expected = array([0.5, 1.5, 2.5], dtype: Float64List);
+    var a = NdArray.array([1, 2, 3], dtype: Int32List); // Use static method
+    var b =
+        NdArray.array([0.5, 0.5, 0.5], dtype: Float64List); // Use static method
+    var expected =
+        NdArray.array([0.5, 1.5, 2.5], dtype: Float64List); // Use static method
     var result = a - b;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
@@ -288,11 +310,13 @@ void _testTypePromotionSubtractionIntDouble() {
   });
 }
 
-void _testTypePromotionSubtractionDoubleInt() {
+void testTypePromotionSubtractionDoubleInt() {
   test('Type Promotion Subtraction: double - int', () {
-    var a = array([1.5, 2.5, 3.5], dtype: Float64List);
-    var b = array([1, 1, 1], dtype: Int32List);
-    var expected = array([0.5, 1.5, 2.5], dtype: Float64List);
+    var a =
+        NdArray.array([1.5, 2.5, 3.5], dtype: Float64List); // Use static method
+    var b = NdArray.array([1, 1, 1], dtype: Int32List); // Use static method
+    var expected =
+        NdArray.array([0.5, 1.5, 2.5], dtype: Float64List); // Use static method
     var result = a - b;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
@@ -301,15 +325,18 @@ void _testTypePromotionSubtractionDoubleInt() {
   });
 }
 
-void _testTypePromotionSubtractionWithBroadcastingIntDouble() {
+void testTypePromotionSubtractionWithBroadcastingIntDouble() {
   test('Type Promotion Subtraction with Broadcasting: int[2,3] - double[3]',
       () {
-    var a = array([
+    var a = NdArray.array([
+      // Use static method
       [1, 2, 3],
       [4, 5, 6]
     ], dtype: Int32List);
-    var b = array([0.1, 0.2, 0.3], dtype: Float64List);
-    var expected = array([
+    var b =
+        NdArray.array([0.1, 0.2, 0.3], dtype: Float64List); // Use static method
+    var expected = NdArray.array([
+      // Use static method
       [0.9, 1.8, 2.7],
       [3.9, 4.8, 5.7]
     ], dtype: Float64List);
@@ -327,18 +354,21 @@ void _testTypePromotionSubtractionWithBroadcastingIntDouble() {
   });
 }
 
-void _testTypePromotionSubtractionWithBroadcastingDoubleInt() {
+void testTypePromotionSubtractionWithBroadcastingDoubleInt() {
   test('Type Promotion Subtraction with Broadcasting: double[2,3] - int[2,1]',
       () {
-    var a = array([
+    var a = NdArray.array([
+      // Use static method
       [10.1, 10.2, 10.3],
       [20.4, 20.5, 20.6]
     ], dtype: Float64List);
-    var b = array([
+    var b = NdArray.array([
+      // Use static method
       [10],
       [20]
     ], dtype: Int32List);
-    var expected = array([
+    var expected = NdArray.array([
+      // Use static method
       [0.1, 0.2, 0.3],
       [0.4, 0.5, 0.6]
     ], dtype: Float64List);

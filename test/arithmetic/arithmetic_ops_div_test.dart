@@ -1,43 +1,52 @@
-part of 'arithmetic_ops_test.dart';
+import 'dart:typed_data';
+import 'dart:math' as math; // Import math library with prefix
+import 'dart:math'; // For isNaN checks
+import 'package:test/test.dart';
+import 'package:numdart/numdart.dart'; // Import main library
+import 'package:collection/collection.dart';
 
-void _testDivisionGroup() {
+// No 'part of' needed
+
+void main() {
+  // Main entry point for this test file
   group('NdArray Division (operator/)', () {
+    // Call individual test functions directly within the group
     // --- Scalar Division Tests ---
-    _testScalarDivisionInt();
-    _testScalarDivisionDouble();
-    _testScalarDivisionWithTypePromotion();
-    _testScalarDivisionWith2DArray();
-    _testScalarDivisionWithView();
-    _testScalarDivisionWithEmptyArray();
-    _testScalarDivisionByZero();
-    _testScalarDivisionByZeroIntArray();
-    _testThrowsArgumentErrorForInvalidScalarTypeDivision();
+    testScalarDivisionInt();
+    testScalarDivisionDouble();
+    testScalarDivisionWithTypePromotion();
+    testScalarDivisionWith2DArray();
+    testScalarDivisionWithView();
+    testScalarDivisionWithEmptyArray();
+    testScalarDivisionByZero();
+    testScalarDivisionByZeroIntArray();
+    testThrowsArgumentErrorForInvalidScalarTypeDivision();
 
     // --- Array-Array Division Tests ---
-    _testArrayDivisionIntInt();
-    _testArrayDivisionDoubleDouble();
-    _testArrayDivisionIntDouble();
-    _testArrayDivision2D();
-    _testArrayDivisionWithViews();
-    _testArrayDivisionByZero();
-    _testArrayDivisionZerosByNonZeros();
-    _testArrayDivisionEmptyArrays();
-    _testTypePromotionDivisionIntDoubleArray(); // Already covered by Int/Int
-    _testTypePromotionDivisionDoubleIntArray(); // Already covered by Double/Double
-    _testBroadcastingDivisionRow();
-    _testBroadcastingDivisionColumn();
-    _testBroadcastingDivisionByZeroArray();
-    _testThrowsArgumentErrorForIncompatibleBroadcastShapesDivision();
-    _testTypePromotionDivisionWithBroadcastingIntDoubleArray();
-    _testTypePromotionDivisionWithBroadcastingDoubleIntArray();
+    testArrayDivisionIntInt();
+    testArrayDivisionDoubleDouble();
+    testArrayDivisionIntDouble();
+    testArrayDivision2D();
+    testArrayDivisionWithViews();
+    testArrayDivisionByZero();
+    testArrayDivisionZerosByNonZeros();
+    testArrayDivisionEmptyArrays();
+    testTypePromotionDivisionIntDoubleArray();
+    testTypePromotionDivisionDoubleIntArray();
+    testBroadcastingDivisionRow();
+    testBroadcastingDivisionColumn();
+    testBroadcastingDivisionByZeroArray();
+    testThrowsArgumentErrorForIncompatibleBroadcastShapesDivision();
+    testTypePromotionDivisionWithBroadcastingIntDoubleArray();
+    testTypePromotionDivisionWithBroadcastingDoubleIntArray();
   });
 }
 
-void _testScalarDivisionInt() {
+void testScalarDivisionInt() {
   test('Scalar Division (NdArray / int)', () {
-    var a = array([10, 20, 30]);
+    var a = NdArray.array([10, 20, 30]); // Use static method
     var scalar = 10;
-    var expected = array([1.0, 2.0, 3.0], dtype: Float64List);
+    var expected = NdArray.array([1.0, 2.0, 3.0], dtype: Float64List);
     var result = a / scalar;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
@@ -46,11 +55,11 @@ void _testScalarDivisionInt() {
   });
 }
 
-void _testScalarDivisionDouble() {
+void testScalarDivisionDouble() {
   test('Scalar Division (NdArray / double)', () {
-    var a = array([2.0, 5.0, 6.0]);
+    var a = NdArray.array([2.0, 5.0, 6.0]);
     var scalar = 2.0;
-    var expected = array([1.0, 2.5, 3.0], dtype: Float64List);
+    var expected = NdArray.array([1.0, 2.5, 3.0], dtype: Float64List);
     var result = a / scalar;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
@@ -59,11 +68,11 @@ void _testScalarDivisionDouble() {
   });
 }
 
-void _testScalarDivisionWithTypePromotion() {
+void testScalarDivisionWithTypePromotion() {
   test('Scalar Division with Type Promotion (int Array / int scalar)', () {
-    var a = array([5, 10, 15]);
+    var a = NdArray.array([5, 10, 15]);
     var scalar = 2;
-    var expected = array([2.5, 5.0, 7.5], dtype: Float64List);
+    var expected = NdArray.array([2.5, 5.0, 7.5], dtype: Float64List);
     var result = a / scalar;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
@@ -72,14 +81,14 @@ void _testScalarDivisionWithTypePromotion() {
   });
 }
 
-void _testScalarDivisionWith2DArray() {
+void testScalarDivisionWith2DArray() {
   test('Scalar Division with 2D Array', () {
-    var a = array([
+    var a = NdArray.array([
       [3, 6],
       [9, 12]
     ]);
     var scalar = 3;
-    var expected = array([
+    var expected = NdArray.array([
       [1.0, 2.0],
       [3.0, 4.0]
     ], dtype: Float64List);
@@ -88,18 +97,18 @@ void _testScalarDivisionWith2DArray() {
     expect(result.dtype, equals(double));
     expect(result.data, isA<Float64List>());
     expect(
-        const DeepCollectionEquality()
+        const DeepCollectionEquality() // Corrected typo
             .equals(result.toList(), expected.toList()),
         isTrue);
   });
 }
 
-void _testScalarDivisionWithView() {
+void testScalarDivisionWithView() {
   test('Scalar Division with View', () {
-    var base = arange(6).reshape([2, 3]);
+    var base = NdArray.arange(6).reshape([2, 3]); // Use static method
     var view = base[[Slice(null, null), Slice(1, null)]];
     var scalar = 2;
-    var expected = array([
+    var expected = NdArray.array([
       [0.5, 1.0],
       [2.0, 2.5]
     ], dtype: Float64List);
@@ -108,7 +117,7 @@ void _testScalarDivisionWithView() {
     expect(result.dtype, equals(double));
     expect(result.data, isA<Float64List>());
     expect(
-        const DeepCollectionEquality()
+        const DeepCollectionEquality() // Corrected typo
             .equals(result.toList(), expected.toList()),
         isTrue);
     expect(
@@ -120,11 +129,11 @@ void _testScalarDivisionWithView() {
   });
 }
 
-void _testScalarDivisionWithEmptyArray() {
+void testScalarDivisionWithEmptyArray() {
   test('Scalar Division with Empty Array', () {
-    var a = zeros([0]);
+    var a = NdArray.zeros([0]); // Use static method
     var scalar = 5;
-    var expected = zeros([0], dtype: Float64List);
+    var expected = NdArray.zeros([0], dtype: Float64List);
     var result = a / scalar;
     expect(result.shape, equals(expected.shape));
     expect(result.size, equals(0));
@@ -134,9 +143,9 @@ void _testScalarDivisionWithEmptyArray() {
   });
 }
 
-void _testScalarDivisionByZero() {
+void testScalarDivisionByZero() {
   test('Scalar Division by Zero', () {
-    var a = array([1.0, -2.0, 0.0, 5.0]);
+    var a = NdArray.array([1.0, -2.0, 0.0, 5.0]);
     var scalar = 0;
     var result = a / scalar;
     expect(result.dtype, equals(double));
@@ -149,9 +158,9 @@ void _testScalarDivisionByZero() {
   });
 }
 
-void _testScalarDivisionByZeroIntArray() {
+void testScalarDivisionByZeroIntArray() {
   test('Scalar Division by Zero (Int Array)', () {
-    var a = array([1, -2, 0, 5]);
+    var a = NdArray.array([1, -2, 0, 5]);
     var scalar = 0;
     var result = a / scalar;
     expect(result.dtype, equals(double));
@@ -164,20 +173,20 @@ void _testScalarDivisionByZeroIntArray() {
   });
 }
 
-void _testThrowsArgumentErrorForInvalidScalarTypeDivision() {
+void testThrowsArgumentErrorForInvalidScalarTypeDivision() {
   test('Throws ArgumentError for invalid scalar type', () {
-    var a = array([1, 2, 3]);
+    var a = NdArray.array([1, 2, 3]);
     expect(() => a / 'hello', throwsArgumentError);
     expect(() => a / true, throwsArgumentError);
     expect(() => a / null, throwsArgumentError);
   });
 }
 
-void _testArrayDivisionIntInt() {
+void testArrayDivisionIntInt() {
   test('1D Array Division (Int / Int)', () {
-    var a = array([10, 20, 30]);
-    var b = array([2, 5, 10]);
-    var expected = array([5.0, 4.0, 3.0], dtype: Float64List);
+    var a = NdArray.array([10, 20, 30]);
+    var b = NdArray.array([2, 5, 10]);
+    var expected = NdArray.array([5.0, 4.0, 3.0], dtype: Float64List);
     var result = a / b;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
@@ -186,11 +195,11 @@ void _testArrayDivisionIntInt() {
   });
 }
 
-void _testArrayDivisionDoubleDouble() {
+void testArrayDivisionDoubleDouble() {
   test('1D Array Division (Double / Double)', () {
-    var a = array([10.0, 20.0, 30.0]);
-    var b = array([2.0, 5.0, 10.0]);
-    var expected = array([5.0, 4.0, 3.0], dtype: Float64List);
+    var a = NdArray.array([10.0, 20.0, 30.0]);
+    var b = NdArray.array([2.0, 5.0, 10.0]);
+    var expected = NdArray.array([5.0, 4.0, 3.0], dtype: Float64List);
     var result = a / b;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
@@ -199,12 +208,12 @@ void _testArrayDivisionDoubleDouble() {
   });
 }
 
-void _testArrayDivisionIntDouble() {
+void testArrayDivisionIntDouble() {
   test('1D Array Division (Int / Double)', () {
     // Already tests type promotion implicitly
-    var a = array([10, 20, 30]);
-    var b = array([2.0, 5.0, 10.0]);
-    var expected = array([5.0, 4.0, 3.0], dtype: Float64List);
+    var a = NdArray.array([10, 20, 30]);
+    var b = NdArray.array([2.0, 5.0, 10.0]);
+    var expected = NdArray.array([5.0, 4.0, 3.0], dtype: Float64List);
     var result = a / b;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
@@ -213,17 +222,17 @@ void _testArrayDivisionIntDouble() {
   });
 }
 
-void _testArrayDivision2D() {
+void testArrayDivision2D() {
   test('2D Array Division', () {
-    var a = array([
+    var a = NdArray.array([
       [10, 20],
       [30, 40]
     ]);
-    var b = array([
+    var b = NdArray.array([
       [2, 5],
       [10, 8]
     ]);
-    var expected = array([
+    var expected = NdArray.array([
       [5.0, 4.0],
       [3.0, 5.0]
     ], dtype: Float64List);
@@ -232,20 +241,20 @@ void _testArrayDivision2D() {
     expect(result.dtype, equals(double));
     expect(result.data, isA<Float64List>());
     expect(
-        const DeepCollectionEquality()
+        const DeepCollectionEquality() // Corrected typo
             .equals(result.toList(), expected.toList()),
         isTrue);
   });
 }
 
-void _testArrayDivisionWithViews() {
+void testArrayDivisionWithViews() {
   test('Array Division with Views', () {
-    var baseA = arange(10, stop: 20);
-    var baseB = arange(1, stop: 11);
+    var baseA = NdArray.arange(10, stop: 20); // Use static method
+    var baseB = NdArray.arange(1, stop: 11);
     var a = baseA[[Slice(0, 4)]];
     var b = baseB[[Slice(1, 5)]];
     var expected =
-        array([5.0, 11.0 / 3.0, 3.0, 13.0 / 5.0], dtype: Float64List);
+        NdArray.array([5.0, 11.0 / 3.0, 3.0, 13.0 / 5.0], dtype: Float64List);
     var result = a / b;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
@@ -257,10 +266,10 @@ void _testArrayDivisionWithViews() {
   });
 }
 
-void _testArrayDivisionByZero() {
+void testArrayDivisionByZero() {
   test('Array Division by Zero', () {
-    var a = array([1.0, -2.0, 0.0, 5.0, 10]);
-    var b = array([0.0, 0.0, 0.0, 0.0, 0]);
+    var a = NdArray.array([1.0, -2.0, 0.0, 5.0, 10]);
+    var b = NdArray.array([0.0, 0.0, 0.0, 0.0, 0]);
     var result = a / b;
     expect(result.dtype, equals(double));
     expect(result.data, isA<Float64List>());
@@ -273,11 +282,11 @@ void _testArrayDivisionByZero() {
   });
 }
 
-void _testArrayDivisionZerosByNonZeros() {
+void testArrayDivisionZerosByNonZeros() {
   test('Array Division of Zeros by Non-Zeros', () {
-    var a = array([0.0, 0, 0.0]);
-    var b = array([1.0, 2, -5.0]);
-    var expected = array([0.0, 0.0, -0.0], dtype: Float64List);
+    var a = NdArray.array([0.0, 0, 0.0]);
+    var b = NdArray.array([1.0, 2, -5.0]);
+    var expected = NdArray.array([0.0, 0.0, -0.0], dtype: Float64List);
     var result = a / b;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
@@ -287,11 +296,11 @@ void _testArrayDivisionZerosByNonZeros() {
   });
 }
 
-void _testArrayDivisionEmptyArrays() {
+void testArrayDivisionEmptyArrays() {
   test('Array Division of Empty Arrays', () {
-    var a = zeros([0]);
-    var b = zeros([0]);
-    var expected = zeros([0], dtype: Float64List);
+    var a = NdArray.zeros([0]);
+    var b = NdArray.zeros([0]);
+    var expected = NdArray.zeros([0], dtype: Float64List);
     var result = a / b;
     expect(result.shape, equals(expected.shape));
     expect(result.size, equals(0));
@@ -299,26 +308,26 @@ void _testArrayDivisionEmptyArrays() {
     expect(result.data, isA<Float64List>());
     expect(result.toList(), equals(expected.toList()));
 
-    var c = zeros([2, 0]);
-    var d = zeros([2, 0]);
-    var expected2 = zeros([2, 0], dtype: Float64List);
+    var c = NdArray.zeros([2, 0]);
+    var d = NdArray.zeros([2, 0]);
+    var expected2 = NdArray.zeros([2, 0], dtype: Float64List);
     var result2 = c / d;
     expect(result2.shape, equals(expected2.shape));
     expect(result2.size, equals(0));
     expect(result2.dtype, equals(double));
     expect(result2.data, isA<Float64List>());
     expect(
-        const DeepCollectionEquality()
+        const DeepCollectionEquality() // Corrected typo
             .equals(result2.toList(), expected2.toList()),
         isTrue);
   });
 }
 
-void _testTypePromotionDivisionIntDoubleArray() {
+void testTypePromotionDivisionIntDoubleArray() {
   test('Type Promotion Division: int / double (already covered)', () {
-    var a = array([10, 20, 30], dtype: Int32List);
-    var b = array([2.0, 5.0, 10.0], dtype: Float64List);
-    var expected = array([5.0, 4.0, 3.0], dtype: Float64List);
+    var a = NdArray.array([10, 20, 30], dtype: Int32List);
+    var b = NdArray.array([2.0, 5.0, 10.0], dtype: Float64List);
+    var expected = NdArray.array([5.0, 4.0, 3.0], dtype: Float64List);
     var result = a / b;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
@@ -327,11 +336,11 @@ void _testTypePromotionDivisionIntDoubleArray() {
   });
 }
 
-void _testTypePromotionDivisionDoubleIntArray() {
+void testTypePromotionDivisionDoubleIntArray() {
   test('Type Promotion Division: double / int', () {
-    var a = array([10.0, 20.0, 30.0], dtype: Float64List);
-    var b = array([2, 5, 10], dtype: Int32List);
-    var expected = array([5.0, 4.0, 3.0], dtype: Float64List);
+    var a = NdArray.array([10.0, 20.0, 30.0], dtype: Float64List);
+    var b = NdArray.array([2, 5, 10], dtype: Int32List);
+    var expected = NdArray.array([5.0, 4.0, 3.0], dtype: Float64List);
     var result = a / b;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
@@ -340,60 +349,60 @@ void _testTypePromotionDivisionDoubleIntArray() {
   });
 }
 
-void _testBroadcastingDivisionRow() {
+void testBroadcastingDivisionRow() {
   test('Broadcasting Division: 2D / 1D (Row)', () {
-    var a = array([
+    var a = NdArray.array([
       [10, 40, 90],
       [40, 100, 180]
-    ]); // Int64List default
-    var b = array([10, 20, 30]); // Int64List default
-    var expected = array([
+    ]);
+    var b = NdArray.array([10, 20, 30]);
+    var expected = NdArray.array([
       [1.0, 2.0, 3.0],
       [4.0, 5.0, 6.0]
-    ], dtype: Float64List); // Shape [2, 3]
+    ], dtype: Float64List);
     var result = a / b;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
     expect(result.data, isA<Float64List>());
     expect(
-        const DeepCollectionEquality()
+        const DeepCollectionEquality() // Corrected typo
             .equals(result.toList(), expected.toList()),
         isTrue);
   });
 }
 
-void _testBroadcastingDivisionColumn() {
+void testBroadcastingDivisionColumn() {
   test('Broadcasting Division: 2D / 1D (Column)', () {
-    var a = array([
+    var a = NdArray.array([
       [10, 20, 30],
       [80, 100, 120]
-    ]); // Int64List default
-    var b = array([
+    ]);
+    var b = NdArray.array([
       [10],
       [20]
-    ]); // Int64List default
-    var expected = array([
+    ]);
+    var expected = NdArray.array([
       [1.0, 2.0, 3.0],
       [4.0, 5.0, 6.0]
-    ], dtype: Float64List); // Shape [2, 3]
+    ], dtype: Float64List);
     var result = a / b;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
     expect(result.data, isA<Float64List>());
     expect(
-        const DeepCollectionEquality()
+        const DeepCollectionEquality() // Corrected typo
             .equals(result.toList(), expected.toList()),
         isTrue);
   });
 }
 
-void _testBroadcastingDivisionByZeroArray() {
+void testBroadcastingDivisionByZeroArray() {
   test('Broadcasting Division by Zero', () {
-    var a = array([
+    var a = NdArray.array([
       [1.0, -2.0],
       [0.0, 5.0]
-    ]); // Float64List default
-    var b = array([0.0, 1.0]); // Float64List default
+    ]);
+    var b = NdArray.array([0.0, 1.0]);
     var result = a / b; // [[1/0, -2/1], [0/0, 5/1]]
     expect(result.shape, equals([2, 2]));
     expect(result.dtype, equals(double));
@@ -405,59 +414,59 @@ void _testBroadcastingDivisionByZeroArray() {
   });
 }
 
-void _testThrowsArgumentErrorForIncompatibleBroadcastShapesDivision() {
+void testThrowsArgumentErrorForIncompatibleBroadcastShapesDivision() {
   test('Throws ArgumentError for incompatible broadcast shapes', () {
-    var a = array([
+    var a = NdArray.array([
       [1, 2, 3],
       [4, 5, 6]
     ]);
-    var b = array([10, 20]);
+    var b = NdArray.array([10, 20]);
     expect(() => a / b, throwsArgumentError);
   });
 }
 
-void _testTypePromotionDivisionWithBroadcastingIntDoubleArray() {
+void testTypePromotionDivisionWithBroadcastingIntDoubleArray() {
   test('Type Promotion Division with Broadcasting: int[2,3] / double[3]', () {
-    var a = array([
+    var a = NdArray.array([
       [10, 40, 90],
       [40, 100, 180]
     ], dtype: Int32List);
-    var b = array([10.0, 20.0, 30.0], dtype: Float64List);
-    var expected = array([
+    var b = NdArray.array([10.0, 20.0, 30.0], dtype: Float64List);
+    var expected = NdArray.array([
       [1.0, 2.0, 3.0],
       [4.0, 5.0, 6.0]
-    ], dtype: Float64List); // Result always double
+    ], dtype: Float64List);
     var result = a / b;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
     expect(result.data, isA<Float64List>());
     expect(
-        const DeepCollectionEquality()
+        const DeepCollectionEquality() // Corrected typo
             .equals(result.toList(), expected.toList()),
         isTrue);
   });
 }
 
-void _testTypePromotionDivisionWithBroadcastingDoubleIntArray() {
+void testTypePromotionDivisionWithBroadcastingDoubleIntArray() {
   test('Type Promotion Division with Broadcasting: double[2,1] / int[2,3]', () {
-    var a = array([
+    var a = NdArray.array([
       [10.0],
       [80.0]
     ], dtype: Float64List);
-    var b = array([
+    var b = NdArray.array([
       [1, 2, 4],
       [4, 5, 8]
     ], dtype: Int32List);
-    var expected = array([
+    var expected = NdArray.array([
       [10.0, 5.0, 2.5],
       [20.0, 16.0, 10.0]
-    ], dtype: Float64List); // Result always double
+    ], dtype: Float64List);
     var result = a / b;
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
     expect(result.data, isA<Float64List>());
     expect(
-        const DeepCollectionEquality()
+        const DeepCollectionEquality() // Corrected typo
             .equals(result.toList(), expected.toList()),
         isTrue);
   });

@@ -1,14 +1,23 @@
-<!-- Version: 1.2 | Last Updated: 2025-04-05 | Updated By: Cline -->
+<!-- Version: 1.4 | Last Updated: 2025-04-05 | Updated By: Cline -->
 
-# Active Context: NumDart (As of 2025-04-05 ~06:31 Europe/London)
+# Active Context: NumDart (As of 2025-04-05 ~07:05 Europe/London)
 
 ## Current Focus
 
-- **Phase 2 Math Functions:** Implement the next common element-wise function:
-  `log`.
+- **Phase 2 Broadcasting:** Refine broadcasting implementation and add more
+  complex tests.
 
 ## Recent Changes
 
+- **Refactored Test Creation Methods:** Updated all test files
+  (`creation_test.dart`, `indexing_test.dart`, `reshape_test.dart`, and files in
+  `test/arithmetic/` and `test/elementwise/`) to use static `NdArray` creation
+  methods (e.g., `NdArray.array`, `NdArray.zeros`).
+- **Removed Obsolete `part` Files:** Deleted all `.part.dart` files from
+  `test/arithmetic/` and `test/elementwise/` directories as their content was
+  merged into the main test files.
+- **Verified `NdArray.log()`:** Confirmed implementation and tests for the
+  natural logarithm method already exist.
 - **Added Tests for `NdArray.tan()`:** Created and verified tests for the
   tangent method.
 - **Reorganized Test Directory:** Moved test files into a more structured layout
@@ -42,13 +51,13 @@
 
 ## Next Steps
 
-1. **Add More Math Functions:** Implement common element-wise functions (e.g.,
-   `log`). (`sqrt`, `exp`, `sin`, `cos`, `tan` done).
-2. **Refine Broadcasting:** Add more complex broadcasting tests.
-3. **Address Slicing Bug:** Investigate and fix the known bug with negative
+1. **Refine Broadcasting:** Add more complex broadcasting tests.
+2. **Address Slicing Bug:** Investigate and fix the known bug with negative
    steps in slicing.
-4. **Scalar Handling:** Review and ensure consistent handling for 0-D (scalar)
+3. **Scalar Handling:** Review and ensure consistent handling for 0-D (scalar)
    arrays.
+4. **Add More Math Functions:** Implement aggregation functions (e.g., `sum`,
+   `mean`, `max`, `min`). (`sqrt`, `exp`, `sin`, `cos`, `tan`, `log` done).
 
 ## Open Questions / Considerations
 

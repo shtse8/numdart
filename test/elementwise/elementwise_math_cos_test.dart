@@ -1,20 +1,28 @@
-part of 'elementwise_math_test.dart';
+import 'dart:typed_data';
+import 'dart:math' as math; // Import math library with prefix
+import 'package:test/test.dart';
+import 'package:numdart/numdart.dart'; // Import main library
+import 'package:collection/collection.dart';
 
-void _testCosGroup() {
+// No 'part of' needed
+
+void main() {
+  // Main entry point for this test file
   group('NdArray Cosine (cos)', () {
-    _testCos1DInteger();
-    _testCos1DDouble();
-    _testCos2D();
-    _testCosEmptyArray();
-    _testCosView();
+    // Call individual test functions directly within the group
+    testCos1DInteger();
+    testCos1DDouble();
+    testCos2D();
+    testCosEmptyArray();
+    testCosView();
   });
 }
 
-void _testCos1DInteger() {
+void testCos1DInteger() {
   test('cos of 1D Integer Array (as radians)', () {
-    var a = array([0, 1, 2]); // Interpreted as radians
-    var expected =
-        array([math.cos(0), math.cos(1), math.cos(2)], dtype: Float64List);
+    var a = NdArray.array([0, 1, 2]); // Use static method
+    var expected = NdArray.array([math.cos(0), math.cos(1), math.cos(2)],
+        dtype: Float64List); // Use static method
     var result = a.cos();
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
@@ -25,10 +33,17 @@ void _testCos1DInteger() {
   });
 }
 
-void _testCos1DDouble() {
+void testCos1DDouble() {
   test('cos of 1D Double Array (radians)', () {
-    var a = array([0.0, math.pi / 2, math.pi, 3 * math.pi / 2, 2 * math.pi]);
-    var expected = array([1.0, 0.0, -1.0, 0.0, 1.0], dtype: Float64List);
+    var a = NdArray.array([
+      0.0,
+      math.pi / 2,
+      math.pi,
+      3 * math.pi / 2,
+      2 * math.pi
+    ]); // Use static method
+    var expected = NdArray.array([1.0, 0.0, -1.0, 0.0, 1.0],
+        dtype: Float64List); // Use static method
     var result = a.cos();
     expect(result.shape, equals(expected.shape));
     expect(result.dtype, equals(double));
@@ -39,13 +54,15 @@ void _testCos1DDouble() {
   });
 }
 
-void _testCos2D() {
+void testCos2D() {
   test('cos of 2D Array (radians)', () {
-    var a = array([
+    var a = NdArray.array([
+      // Use static method
       [0, math.pi / 2],
       [math.pi, 3 * math.pi / 2]
     ]);
-    var expected = array([
+    var expected = NdArray.array([
+      // Use static method
       [1.0, 0.0],
       [-1.0, 0.0]
     ], dtype: Float64List);
@@ -60,12 +77,12 @@ void _testCos2D() {
   });
 }
 
-void _testCosEmptyArray() {
+void testCosEmptyArray() {
   test('cos of Empty Array', () {
-    var a = zeros([0]);
+    var a = NdArray.zeros([0]); // Use static method
     // cos(0) is 1, but for empty array...
     // Let's refine: expected should be empty float array
-    var expected = array([], dtype: Float64List);
+    var expected = NdArray.array([], dtype: Float64List); // Use static method
     var result = a.cos();
     expect(result.shape, equals(expected.shape));
     expect(result.size, equals(0));
@@ -73,8 +90,9 @@ void _testCosEmptyArray() {
     expect(result.data, isA<Float64List>());
     expect(result.toList(), equals(expected.toList()));
 
-    var c = zeros([2, 0], dtype: Int32List);
-    var expected2 = zeros([2, 0], dtype: Float64List);
+    var c = NdArray.zeros([2, 0], dtype: Int32List); // Use static method
+    var expected2 =
+        NdArray.zeros([2, 0], dtype: Float64List); // Use static method
     var result2 = c.cos();
     expect(result2.shape, equals(expected2.shape));
     expect(result2.size, equals(0));
@@ -87,15 +105,17 @@ void _testCosEmptyArray() {
   });
 }
 
-void _testCosView() {
+void testCosView() {
   test('cos of View', () {
-    var base = array([
+    var base = NdArray.array([
+      // Use static method
       [0, math.pi / 2, math.pi],
       [math.pi, 3 * math.pi / 2, 2 * math.pi]
     ]);
     var view =
         base[[Slice(null, null), Slice(1, null)]]; // [[pi/2, pi], [3pi/2, 2pi]]
-    var expected = array([
+    var expected = NdArray.array([
+      // Use static method
       [0.0, -1.0],
       [0.0, 1.0]
     ], dtype: Float64List);
